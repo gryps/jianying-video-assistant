@@ -1,0 +1,19 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+*.cache
+# 用户素材、音频、剪映草稿和生成物
+workspace/
+media/
+music/
+drafts/
+exports/
+*.mp4
+*.mov
+*.mkv
+*.mp3
+*.wav
+*.aac
