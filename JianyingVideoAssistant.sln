@@ -4,6 +4,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JianyingVideoAssistant", "src\JianyingVideoAssistant\JianyingVideoAssistant.csproj", "{53A5B3E0-C192-4B33-989D-20DB7D496C48}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JianyingVideoAssistant.CoreSmokeTests", "tests\JianyingVideoAssistant.CoreSmokeTests\JianyingVideoAssistant.CoreSmokeTests.csproj", "{B4650A59-6AFA-4B71-80A1-910754582C13}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -14,5 +16,9 @@ Global
 		{53A5B3E0-C192-4B33-989D-20DB7D496C48}.Debug|x64.Build.0 = Debug|x64
 		{53A5B3E0-C192-4B33-989D-20DB7D496C48}.Release|x64.ActiveCfg = Release|x64
 		{53A5B3E0-C192-4B33-989D-20DB7D496C48}.Release|x64.Build.0 = Release|x64
+		{B4650A59-6AFA-4B71-80A1-910754582C13}.Debug|x64.ActiveCfg = Debug|x64
+		{B4650A59-6AFA-4B71-80A1-910754582C13}.Debug|x64.Build.0 = Debug|x64
+		{B4650A59-6AFA-4B71-80A1-910754582C13}.Release|x64.ActiveCfg = Release|x64
+		{B4650A59-6AFA-4B71-80A1-910754582C13}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal

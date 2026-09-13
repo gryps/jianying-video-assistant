@@ -14,7 +14,9 @@ public sealed class WorkflowStepViewModel : ObservableObject
         string description,
         string summary,
         string actionLabel,
-        ICommand primaryCommand)
+        string availabilityLabel,
+        bool isActionEnabled,
+        ICommand? primaryCommand)
     {
         IndexLabel = indexLabel;
         Glyph = glyph;
@@ -22,6 +24,8 @@ public sealed class WorkflowStepViewModel : ObservableObject
         Description = description;
         _summary = summary;
         ActionLabel = actionLabel;
+        AvailabilityLabel = availabilityLabel;
+        IsActionEnabled = isActionEnabled;
         PrimaryCommand = primaryCommand;
     }
 
@@ -35,5 +39,7 @@ public sealed class WorkflowStepViewModel : ObservableObject
         set => SetProperty(ref _summary, value);
     }
     public string ActionLabel { get; }
-    public ICommand PrimaryCommand { get; }
+    public string AvailabilityLabel { get; }
+    public bool IsActionEnabled { get; }
+    public ICommand? PrimaryCommand { get; }
 }

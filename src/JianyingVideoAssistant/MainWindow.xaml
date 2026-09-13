@@ -33,17 +33,19 @@
         <NavigationView
             Grid.Row="1"
             IsBackButtonVisible="Collapsed"
-            IsSettingsVisible="True"
+            IsSettingsVisible="False"
             IsPaneToggleButtonVisible="True"
             PaneDisplayMode="LeftCompact"
             OpenPaneLength="208"
             SelectedItem="{x:Bind WorkspaceItem}">
             <NavigationView.MenuItems>
                 <NavigationViewItem x:Name="WorkspaceItem" Content="当前项目" Icon="Home" />
-                <NavigationViewItem Content="素材库" Icon="Pictures" />
-                <NavigationViewItem Content="内容文库" Icon="Document" />
-                <NavigationViewItem Content="音乐库" Icon="Audio" />
-                <NavigationViewItem Content="草稿记录" Icon="Save" />
+                <NavigationViewItemSeparator />
+                <NavigationViewItemHeader Content="资料管理 · 后续开放" />
+                <NavigationViewItem Content="素材库" Icon="Pictures" IsEnabled="False" />
+                <NavigationViewItem Content="内容文库" Icon="Document" IsEnabled="False" />
+                <NavigationViewItem Content="音乐库" Icon="Audio" IsEnabled="False" />
+                <NavigationViewItem Content="草稿记录" Icon="Save" IsEnabled="False" />
             </NavigationView.MenuItems>
 
             <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -64,13 +66,7 @@
                         <StackPanel Spacing="5">
                             <TextBlock Text="{x:Bind ViewModel.Greeting, Mode=OneWay}" FontSize="13" Foreground="{StaticResource MutedTextBrush}" />
                             <TextBlock Text="{x:Bind ViewModel.ProjectName, Mode=OneWay}" FontSize="30" FontWeight="SemiBold" />
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                <TextBlock Text="竖屏 9:16" Foreground="{StaticResource MutedTextBrush}" />
-                                <TextBlock Text="•" Foreground="{StaticResource MutedTextBrush}" />
-                                <TextBlock Text="目标 30 秒" Foreground="{StaticResource MutedTextBrush}" />
-                                <TextBlock Text="•" Foreground="{StaticResource MutedTextBrush}" />
-                                <TextBlock Text="自动保存" Foreground="{StaticResource MutedTextBrush}" />
-                            </StackPanel>
+                            <TextBlock Text="本地工作台 · 素材源文件始终保持不变" Foreground="{StaticResource MutedTextBrush}" />
                         </StackPanel>
                         <Button Grid.Column="1" Command="{x:Bind ViewModel.NewProjectCommand}" Style="{StaticResource AccentButtonStyle}" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -120,28 +116,33 @@
                                             <Border Width="34" Height="34" CornerRadius="10" Background="{ThemeResource AccentFillColorSecondaryBrush}">
                                                 <FontIcon Glyph="{x:Bind Glyph}" FontSize="15" />
                                             </Border>
-                                            <Border Grid.Column="1" Padding="8,3" CornerRadius="10" Background="{ThemeResource ControlFillColorSecondaryBrush}">
-                                                <TextBlock Text="{x:Bind IndexLabel}" FontSize="11" />
-                                            </Border>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                                <Border Padding="8,3" CornerRadius="10" Background="{ThemeResource ControlFillColorSecondaryBrush}">
+                                                    <TextBlock Text="{x:Bind IndexLabel}" FontSize="11" />
+                                                </Border>
+                                                <Border Padding="8,3" CornerRadius="10" Background="{ThemeResource ControlFillColorSecondaryBrush}">
+                                                    <TextBlock Text="{x:Bind AvailabilityLabel}" FontSize="11" />
+                                                </Border>
+                                            </StackPanel>
                                         </Grid>
                                         <StackPanel Grid.Row="1" Margin="0,14,0,0" Spacing="5">
                                             <TextBlock Text="{x:Bind Title}" FontSize="18" FontWeight="SemiBold" />
                                             <TextBlock Text="{x:Bind Description}" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" />
                                         </StackPanel>
                                         <TextBlock Grid.Row="2" Margin="0,14,0,14" Text="{x:Bind Summary, Mode=OneWay}" TextWrapping="Wrap" FontWeight="SemiBold" />
-                                        <Button Grid.Row="3" Content="{x:Bind ActionLabel}" Command="{x:Bind PrimaryCommand}" HorizontalAlignment="Stretch" />
+                                        <Button
+                                            Grid.Row="3"
+                                            Content="{x:Bind ActionLabel}"
+                                            Command="{x:Bind PrimaryCommand}"
+                                            IsEnabled="{x:Bind IsActionEnabled}"
+                                            HorizontalAlignment="Stretch" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsRepeater.ItemTemplate>
                     </ItemsRepeater>
 
-                    <Grid Grid.Row="3" Margin="0,14,0,0" ColumnSpacing="14">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="3*" />
-                            <ColumnDefinition Width="2*" />
-                        </Grid.ColumnDefinitions>
-
+                    <Grid Grid.Row="3" Margin="0,14,0,0">
                         <Border Style="{StaticResource GlassCardStyle}">
                             <StackPanel Spacing="14">
                                 <Grid>
@@ -150,19 +151,45 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="最近素材" FontSize="18" FontWeight="SemiBold" />
-                                        <TextBlock Text="拖进来就能用，分类可以稍后再整理" Foreground="{StaticResource MutedTextBrush}" />
+                                        <TextBlock Text="项目素材" FontSize="18" FontWeight="SemiBold" />
+                                        <TextBlock Text="导入后即可使用，自动分类可以随时纠正" Foreground="{StaticResource MutedTextBrush}" />
                                     </StackPanel>
-                                    <Button Grid.Column="1" Content="导入文件夹" Command="{x:Bind ViewModel.ImportMediaCommand}" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Content="{x:Bind ViewModel.ImportActionLabel, Mode=OneWay}"
+                                        Command="{x:Bind ViewModel.ImportMediaCommand}" />
                                 </Grid>
-                                <ListView ItemsSource="{x:Bind ViewModel.RecentAssets}" SelectionMode="None">
+                                <Border Padding="14" CornerRadius="12" Background="{ThemeResource ControlFillColorSecondaryBrush}">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <ProgressRing
+                                            Width="24"
+                                            Height="24"
+                                            IsActive="{x:Bind ViewModel.IsImporting, Mode=OneWay}"
+                                            VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="3">
+                                            <TextBlock Text="{x:Bind ViewModel.ImportStatusTitle, Mode=OneWay}" FontWeight="SemiBold" />
+                                            <TextBlock
+                                                Text="{x:Bind ViewModel.ImportStatusDetail, Mode=OneWay}"
+                                                TextWrapping="Wrap"
+                                                Foreground="{StaticResource MutedTextBrush}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <ListView
+                                    MaxHeight="390"
+                                    ItemsSource="{x:Bind ViewModel.RecentAssets}"
+                                    SelectionMode="None">
                                     <ListView.ItemTemplate>
                                         <DataTemplate x:DataType="models:MediaAsset">
-                                            <Grid Padding="0,8" ColumnSpacing="12">
+                                            <Grid Padding="0,7" ColumnSpacing="12" ToolTipService.ToolTip="{x:Bind FullPath}">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="44" />
                                                     <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="122" />
                                                 </Grid.ColumnDefinitions>
                                                 <Border Width="44" Height="44" CornerRadius="10" Background="{ThemeResource ControlFillColorSecondaryBrush}">
                                                     <FontIcon Glyph="&#xEB9F;" FontSize="16" />
@@ -171,9 +198,17 @@
                                                     <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                                     <TextBlock Text="{x:Bind Detail}" FontSize="12" Foreground="{StaticResource MutedTextBrush}" />
                                                 </StackPanel>
-                                                <Border Grid.Column="2" Padding="9,4" CornerRadius="10" Background="{ThemeResource ControlFillColorSecondaryBrush}" VerticalAlignment="Center">
-                                                    <TextBlock Text="{x:Bind Category}" FontSize="12" />
-                                                </Border>
+                                                <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                                                    <ComboBox
+                                                        MinWidth="110"
+                                                        ItemsSource="{Binding CategoryOptions}"
+                                                        SelectedItem="{Binding Category, Mode=TwoWay}" />
+                                                    <TextBlock
+                                                        Text="{x:Bind CategorySourceLabel, Mode=OneWay}"
+                                                        FontSize="11"
+                                                        Foreground="{StaticResource MutedTextBrush}"
+                                                        HorizontalAlignment="Right" />
+                                                </StackPanel>
                                             </Grid>
                                         </DataTemplate>
                                     </ListView.ItemTemplate>
@@ -181,28 +216,6 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Grid.Column="1" Style="{StaticResource GlassCardStyle}">
-                            <StackPanel Spacing="14">
-                                <StackPanel>
-                                    <TextBlock Text="项目建议" FontSize="18" FontWeight="SemiBold" />
-                                    <TextBlock Text="只显示现在最值得处理的事项" Foreground="{StaticResource MutedTextBrush}" />
-                                </StackPanel>
-                                <Border Padding="14" CornerRadius="12" Background="{ThemeResource ControlFillColorSecondaryBrush}">
-                                    <StackPanel Spacing="7">
-                                        <TextBlock Text="文案缺少结尾行动句" FontWeight="SemiBold" />
-                                        <TextBlock Text="从内容文库推荐 3 条适合促销视频的结尾。" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" />
-                                        <Button Content="查看推荐" Command="{x:Bind ViewModel.UseCopyCommand}" HorizontalAlignment="Left" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Padding="14" CornerRadius="12" Background="{ThemeResource ControlFillColorSecondaryBrush}">
-                                    <StackPanel Spacing="7">
-                                        <TextBlock Text="背景音乐尚未确认" FontWeight="SemiBold" />
-                                        <TextBlock Text="已按“轻快、促销、30 秒”筛出 4 首。" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" />
-                                        <Button Content="试听第一首" Command="{x:Bind ViewModel.ApplyMusicCommand}" HorizontalAlignment="Left" />
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </Border>
                     </Grid>
 
                     <InfoBar
