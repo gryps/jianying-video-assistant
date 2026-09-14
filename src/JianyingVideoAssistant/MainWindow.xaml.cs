@@ -19,15 +19,37 @@ public partial class MainWindow : Window
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "JianyingVideoAssistant",
             "DraftPreviews");
+        var projectStatePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "JianyingVideoAssistant",
+            "current-project.json");
         DataContext = new MainViewModel(
             new LocalAssetImportService(new MediaCategoryClassifier()),
             new LocalContentLibraryService(),
             new LocalMusicLibraryService(),
             _musicPreviewService,
             new JianyingDraftPreviewAdapter(draftRoot),
+            new JsonProjectStore(projectStatePath),
             PickMediaFolderAsync,
             PickMusicFilesAsync,
             OpenFolder);
+    }
+
+    private void OnPreviewDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private async void OnDrop(object sender, DragEventArgs e)
+    {
+        if (DataContext is not MainViewModel viewModel
+            || e.Data.GetData(DataFormats.FileDrop) is not string[] paths)
+        {
+            return;
+        }
+
+        await viewModel.ImportDroppedPathsAsync(paths);
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e) => WindowBackdrop.TryApply(this);
@@ -60,5 +82,9 @@ public partial class MainWindow : Window
         Process.Start(new ProcessStartInfo("explorer.exe", path) { UseShellExecute = true });
     }
 
-    private void OnClosed(object? sender, EventArgs e) => _musicPreviewService.Dispose();
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel) viewModel.SaveNow();
+        _musicPreviewService.Dispose();
+    }
 }

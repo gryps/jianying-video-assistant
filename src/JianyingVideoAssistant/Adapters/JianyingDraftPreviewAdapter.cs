@@ -65,7 +65,7 @@ public sealed class JianyingDraftPreviewAdapter(string workingRoot) : IDraftExpo
         return new DraftExportResult(
             true,
             previewPath,
-            ["已生成安全项目预览副本；未访问或修改剪映草稿目录。"]);
+            ["项目预览已生成，可打开所在位置。"]);
     }
 
     private static List<string> Validate(DraftExportRequest request)

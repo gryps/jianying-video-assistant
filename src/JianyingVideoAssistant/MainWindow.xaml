@@ -5,8 +5,11 @@
         Title="剪映视频助手"
         Width="1240" Height="820" MinWidth="980" MinHeight="680"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource WindowBrush}"
-        Foreground="White"
+        Background="{DynamicResource WindowBrush}"
+        Foreground="{DynamicResource PrimaryTextBrush}"
+        AllowDrop="True"
+        PreviewDragOver="OnPreviewDragOver"
+        Drop="OnDrop"
         SourceInitialized="OnSourceInitialized"
         Closed="OnClosed">
     <Grid>
@@ -15,7 +18,7 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Background="{StaticResource RailBrush}" BorderBrush="{StaticResource CardStrokeBrush}" BorderThickness="0,0,1,0">
+        <Border Grid.Column="0" Background="{DynamicResource RailBrush}" BorderBrush="{DynamicResource CardStrokeBrush}" BorderThickness="0,0,1,0">
             <Grid Margin="18,22">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -24,26 +27,19 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <StackPanel>
-                    <Border Width="38" Height="38" CornerRadius="11" Background="{StaticResource AccentBrush}" HorizontalAlignment="Left">
-                        <TextBlock Text="剪" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Border Width="38" Height="38" CornerRadius="11" Background="{DynamicResource AccentBrush}" HorizontalAlignment="Left">
+                        <TextBlock Text="剪" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <TextBlock Text="剪映视频助手" Margin="0,12,0,2" FontSize="16" FontWeight="SemiBold" />
-                    <TextBlock Text="当前项目工作台" Foreground="{StaticResource MutedTextBrush}" FontSize="12" />
+                    <TextBlock Text="当前项目工作台" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
                 </StackPanel>
 
-                <Border Grid.Row="1" Margin="0,26,0,0" Padding="12" CornerRadius="10" Background="#4A2B3242">
+                <Border Grid.Row="1" Margin="0,26,0,0" Padding="12" CornerRadius="10" Background="{DynamicResource RailSelectionBrush}">
                     <StackPanel>
                         <TextBlock Text="当前项目" FontWeight="SemiBold" />
-                        <TextBlock Text="四步准备成片" Margin="0,4,0,0" Foreground="{StaticResource MutedTextBrush}" FontSize="12" />
+                        <TextBlock Text="四步准备成片" Margin="0,4,0,0" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
                     </StackPanel>
                 </Border>
-
-                <StackPanel Grid.Row="2" Margin="4,28,0,0">
-                    <TextBlock Text="资料管理" Foreground="#7FFFFFFF" FontSize="11" FontWeight="SemiBold" />
-                    <TextBlock Text="素材库   后续开放" Margin="0,14,0,0" Foreground="#70FFFFFF" />
-                    <TextBlock Text="文案库   后续开放" Margin="0,12,0,0" Foreground="#70FFFFFF" />
-                    <TextBlock Text="音乐库   后续开放" Margin="0,12,0,0" Foreground="#70FFFFFF" />
-                </StackPanel>
 
                 <Button Grid.Row="3" Content="新建空白项目" Command="{Binding NewProjectCommand}" HorizontalAlignment="Stretch" />
             </Grid>
@@ -65,9 +61,9 @@
                         <ColumnDefinition Width="280" />
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="当前视频项目" Foreground="{StaticResource MutedTextBrush}" FontSize="12" />
-                        <TextBox Text="{Binding ProjectName, UpdateSourceTrigger=PropertyChanged}" Margin="0,7,24,0" FontSize="24" FontWeight="SemiBold" BorderThickness="0,0,0,1" Background="Transparent" />
-                        <TextBlock Text="{Binding Greeting}" Margin="0,8,0,0" Foreground="{StaticResource MutedTextBrush}" />
+                        <TextBlock Text="项目名称（可稍后修改）" FontWeight="SemiBold" />
+                        <TextBox Text="{Binding ProjectName, UpdateSourceTrigger=LostFocus}" Margin="0,7,24,0" MinHeight="46" FontSize="20" FontWeight="SemiBold" BorderThickness="1" />
+                        <TextBlock Text="{Binding Greeting}" Margin="0,7,0,0" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
                     </StackPanel>
                     <Border Grid.Column="1" Style="{StaticResource GlassCardStyle}" Padding="16">
                         <StackPanel>
@@ -75,8 +71,8 @@
                                 <TextBlock Text="项目完成度" FontWeight="SemiBold" />
                                 <TextBlock Text="{Binding ProgressLabel}" HorizontalAlignment="Right" FontSize="18" FontWeight="Bold" />
                             </Grid>
-                            <ProgressBar Value="{Binding Progress, Mode=OneWay}" Maximum="100" Height="7" Margin="0,12,0,9" Foreground="{StaticResource AccentBrush}" />
-                            <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" />
+                            <ProgressBar Value="{Binding Progress, Mode=OneWay}" Maximum="100" Height="7" Margin="0,12,0,9" Foreground="{DynamicResource AccentBrush}" />
+                            <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -96,17 +92,14 @@
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
                                     <Grid>
-                                        <TextBlock Text="{Binding IndexLabel}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" />
-                                        <Border HorizontalAlignment="Right" Padding="7,3" CornerRadius="8" Background="#3A7C5CFC">
-                                            <TextBlock Text="{Binding AvailabilityLabel}" FontSize="10" />
-                                        </Border>
+                                        <TextBlock Text="{Binding IndexLabel}" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" />
                                     </Grid>
                                     <StackPanel Grid.Row="1" Margin="0,18,0,0">
-                                        <TextBlock Text="{Binding Glyph}" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{StaticResource AccentBrush}" />
+                                        <TextBlock Text="{Binding Glyph}" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{DynamicResource AccentBrush}" />
                                         <TextBlock Text="{Binding Title}" Margin="0,8,0,0" FontSize="17" FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding Description}" Margin="0,7,0,0" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" />
+                                        <TextBlock Text="{Binding Description}" Margin="0,7,0,0" TextWrapping="Wrap" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
                                     </StackPanel>
-                                    <TextBlock Grid.Row="2" Text="{Binding Summary}" Margin="0,12,0,10" TextWrapping="Wrap" VerticalAlignment="Bottom" Foreground="#DDE3EE" FontSize="12" />
+                                    <TextBlock Grid.Row="2" Text="{Binding Summary}" Margin="0,12,0,10" TextWrapping="Wrap" VerticalAlignment="Bottom" Foreground="{DynamicResource SummaryTextBrush}" FontSize="12" />
                                     <Button Grid.Row="3" Content="{Binding ActionLabel}" Command="{Binding PrimaryCommand}" IsEnabled="{Binding IsActionEnabled}" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Stretch" />
                                 </Grid>
                             </Border>
@@ -122,20 +115,23 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock Text="{Binding ImportStatusTitle}" FontSize="16" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding ImportStatusDetail}" Margin="0,6,0,0" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding ImportStatusDetail}" Margin="0,6,0,0" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                         <Button Grid.Column="1" Content="{Binding ImportActionLabel}" Command="{Binding ImportMediaCommand}" Margin="18,0,0,0" VerticalAlignment="Center" />
                     </Grid>
                 </Border>
 
                 <Grid Grid.Row="3" Margin="0,20,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="260" />
-                    </Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock Text="最近导入的素材" FontSize="18" FontWeight="SemiBold" />
-                        <TextBlock Text="分类建议可直接修改，源文件保持不变" Margin="0,5,0,12" Foreground="{StaticResource MutedTextBrush}" />
+                        <Grid Margin="0,5,0,12">
+                            <TextBlock Text="如果分类不准确，可逐项修改或批量处理“其他”" Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <ComboBox Width="105" ItemsSource="{Binding AssetCategoryOptions}" SelectedItem="{Binding SelectedBulkCategory}" />
+                                <Button Content="归类全部“其他”" Command="{Binding ApplyBulkCategoryCommand}" Margin="8,0,0,0" Padding="10,5" MinHeight="34" />
+                                <Button Content="清理失效" Command="{Binding RemoveMissingAssetsCommand}" Margin="8,0,0,0" Padding="10,5" MinHeight="34" />
+                            </StackPanel>
+                        </Grid>
                         <ListBox ItemsSource="{Binding RecentAssets}" MaxHeight="330">
                             <ListBox.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:MediaAsset}">
@@ -147,11 +143,11 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel>
                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding Detail}" Margin="0,5,12,0" Foreground="{StaticResource MutedTextBrush}" FontSize="12" />
+                                                <TextBlock Text="{Binding Detail}" Margin="0,5,12,0" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="1">
                                                 <ComboBox ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding Category, Mode=TwoWay}" />
-                                                <TextBlock Text="{Binding CategorySourceLabel}" Margin="2,4,0,0" Foreground="{StaticResource MutedTextBrush}" FontSize="10" />
+                                                <TextBlock Text="{Binding CategorySourceLabel}" Margin="2,4,0,0" Foreground="{DynamicResource MutedTextBrush}" FontSize="10" />
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -159,82 +155,81 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </StackPanel>
-
-                    <Border Grid.Column="1" Style="{StaticResource GlassCardStyle}" Margin="20,33,0,0" VerticalAlignment="Top">
-                        <StackPanel>
-                            <TextBlock Text="安全原则" FontWeight="SemiBold" />
-                            <TextBlock Text="素材只读扫描" Margin="0,12,0,0" Foreground="{StaticResource SuccessBrush}" />
-                            <TextBlock Text="音乐只做本地试听" Margin="0,8,0,0" Foreground="{StaticResource SuccessBrush}" />
-                            <TextBlock Text="草稿只生成新副本" Margin="0,8,0,0" Foreground="{StaticResource SuccessBrush}" />
-                            <TextBlock Text="不会移动素材，也不会覆盖已有剪映草稿。" Margin="0,13,0,0" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" />
-                        </StackPanel>
-                    </Border>
                 </Grid>
             </Grid>
         </ScrollViewer>
 
-        <Grid Grid.ColumnSpan="2" Visibility="Collapsed">
+        <Grid Grid.ColumnSpan="2">
             <Grid.Style>
                 <Style TargetType="Grid">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers><DataTrigger Binding="{Binding IsContentPanelOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
                 </Style>
             </Grid.Style>
-            <Border Background="#A0000000" />
-            <Border Width="520" HorizontalAlignment="Right" Background="#FA161B25" BorderBrush="{StaticResource CardStrokeBrush}" BorderThickness="1,0,0,0" Padding="24">
+            <Border Background="{DynamicResource OverlayBrush}" />
+            <Border Width="520" HorizontalAlignment="Right" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource CardStrokeBrush}" BorderThickness="1,0,0,0" Padding="24">
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <Grid>
-                        <StackPanel><TextBlock Text="添加视频文案" FontSize="23" FontWeight="SemiBold" /><TextBlock Text="选择完整句子，直接加入当前项目脚本" Margin="0,4,0,0" Foreground="{StaticResource MutedTextBrush}" /></StackPanel>
+                        <StackPanel><TextBlock Text="添加视频文案" FontSize="23" FontWeight="SemiBold" /><TextBlock Text="选择完整句子，直接加入当前项目脚本" Margin="0,4,0,0" Foreground="{DynamicResource MutedTextBrush}" /></StackPanel>
                         <Button Content="关闭" Command="{Binding CloseContentPanelCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                     </Grid>
-                    <Grid Grid.Row="1" Margin="0,18,0,12">
+                    <Expander Grid.Row="1" Header="直接输入自己的文案" Margin="0,14,0,10">
+                        <StackPanel Margin="0,8,0,0">
+                            <TextBox Text="{Binding CustomContentText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72" VerticalScrollBarVisibility="Auto" />
+                            <Grid Margin="0,8,0,0">
+                                <ComboBox Width="140" HorizontalAlignment="Left" ItemsSource="{Binding ContentPurposeOptions}" SelectedItem="{Binding CustomContentPurpose}" />
+                                <Button Content="加入脚本" Command="{Binding AddCustomContentCommand}" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Right" />
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+                    <Grid Grid.Row="2" Margin="0,4,0,12">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="150" /></Grid.ColumnDefinitions>
                         <TextBox Text="{Binding ContentSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="输入材质、效果、评论等关键词" Margin="0,0,10,0" />
                         <ComboBox Grid.Column="1" ItemsSource="{Binding ContentPurposeOptions}" SelectedItem="{Binding SelectedContentPurpose}" />
                     </Grid>
-                    <Grid Grid.Row="2">
+                    <Grid Grid.Row="3">
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                         <TextBlock Text="{Binding ContentResultSummary}" FontWeight="SemiBold" Margin="0,0,0,8" />
                         <ListBox Grid.Row="1" ItemsSource="{Binding FilteredContentSnippets}" SelectedItem="{Binding SelectedContentSnippet}" ScrollViewer.VerticalScrollBarVisibility="Auto">
-                            <ListBox.ItemTemplate><DataTemplate DataType="{x:Type models:ContentSnippet}"><Border Style="{StaticResource GlassCardStyle}" Margin="0,0,0,8" Padding="12"><StackPanel><TextBlock Text="{Binding Purpose}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" /><TextBlock Text="{Binding Text}" Margin="0,7,0,0" TextWrapping="Wrap" /><TextBlock Text="{Binding KeywordLabel}" Margin="0,6,0,0" Foreground="{StaticResource MutedTextBrush}" FontSize="11" /></StackPanel></Border></DataTemplate></ListBox.ItemTemplate>
+                            <ListBox.ItemTemplate><DataTemplate DataType="{x:Type models:ContentSnippet}"><Border Style="{StaticResource GlassCardStyle}" Margin="0,0,0,8" Padding="12"><StackPanel><TextBlock Text="{Binding Purpose}" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" /><TextBlock Text="{Binding Text}" Margin="0,7,0,0" TextWrapping="Wrap" /><TextBlock Text="{Binding KeywordLabel}" Margin="0,6,0,0" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" /></StackPanel></Border></DataTemplate></ListBox.ItemTemplate>
                         </ListBox>
                     </Grid>
-                    <Grid Grid.Row="3" Margin="0,12,0,12">
+                    <Grid Grid.Row="4" Margin="0,12,0,12">
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                        <Grid><TextBlock Text="{Binding ScriptSummary}" FontWeight="SemiBold" /><Button Content="撤销上一段" Command="{Binding UndoLastScriptSegmentCommand}" HorizontalAlignment="Right" Padding="10,5" MinHeight="30" /></Grid>
-                        <ListBox Grid.Row="1" ItemsSource="{Binding ProjectScriptSegments}" MaxHeight="135" Margin="0,8,0,0"><ListBox.ItemTemplate><DataTemplate DataType="{x:Type models:ProjectScriptSegment}"><TextBlock Text="{Binding Text}" Margin="5" TextWrapping="Wrap" /></DataTemplate></ListBox.ItemTemplate></ListBox>
+                        <Grid><TextBlock Text="{Binding ScriptSummary}" FontWeight="SemiBold" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="上移" Command="{Binding MoveScriptSegmentUpCommand}" Padding="8,4" MinHeight="30" /><Button Content="下移" Command="{Binding MoveScriptSegmentDownCommand}" Margin="6,0,0,0" Padding="8,4" MinHeight="30" /><Button Content="删除" Command="{Binding RemoveSelectedScriptSegmentCommand}" Margin="6,0,0,0" Padding="8,4" MinHeight="30" /><Button Content="撤销上一段" Command="{Binding UndoLastScriptSegmentCommand}" Margin="6,0,0,0" Padding="8,4" MinHeight="30" /></StackPanel></Grid>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding ProjectScriptSegments}" SelectedItem="{Binding SelectedScriptSegment}" MaxHeight="135" Margin="0,8,0,0"><ListBox.ItemTemplate><DataTemplate DataType="{x:Type models:ProjectScriptSegment}"><TextBlock Text="{Binding Text}" Margin="5" TextWrapping="Wrap" /></DataTemplate></ListBox.ItemTemplate></ListBox>
                     </Grid>
-                    <Button Grid.Row="4" Content="将选中文案加入脚本" Command="{Binding ApplySelectedContentCommand}" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Stretch" />
+                    <Button Grid.Row="5" Content="将选中文案加入脚本" Command="{Binding ApplySelectedContentCommand}" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Stretch" />
                 </Grid>
             </Border>
         </Grid>
 
-        <Grid Grid.ColumnSpan="2" Visibility="Collapsed">
+        <Grid Grid.ColumnSpan="2">
             <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsMusicPanelOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
-            <Border Background="#A0000000" />
-            <Border Width="520" HorizontalAlignment="Right" Background="#FA161B25" BorderBrush="{StaticResource CardStrokeBrush}" BorderThickness="1,0,0,0" Padding="24">
+            <Border Background="{DynamicResource OverlayBrush}" />
+            <Border Width="520" HorizontalAlignment="Right" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource CardStrokeBrush}" BorderThickness="1,0,0,0" Padding="24">
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <Grid><StackPanel><TextBlock Text="选择背景音乐" FontSize="23" FontWeight="SemiBold" /><TextBlock Text="导入本地音频，试听后应用到当前项目" Margin="0,4,0,0" Foreground="{StaticResource MutedTextBrush}" /></StackPanel><Button Content="关闭" Command="{Binding CloseMusicPanelCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" /></Grid>
+                    <Grid><StackPanel><TextBlock Text="选择背景音乐" FontSize="23" FontWeight="SemiBold" /><TextBlock Text="导入本地音频，试听后应用到当前项目" Margin="0,4,0,0" Foreground="{DynamicResource MutedTextBrush}" /></StackPanel><Button Content="关闭" Command="{Binding CloseMusicPanelCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" /></Grid>
                     <Grid Grid.Row="1" Margin="0,18,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="170" /></Grid.ColumnDefinitions><Button Content="添加本地音乐" Command="{Binding ImportMusicCommand}" HorizontalAlignment="Left" /><ComboBox Grid.Column="1" ItemsSource="{Binding MusicMoodOptions}" SelectedItem="{Binding SelectedMusicMood}" /></Grid>
-                    <Grid Grid.Row="2"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions><TextBlock Text="{Binding MusicResultSummary}" FontWeight="SemiBold" Margin="0,0,0,8" /><ListBox Grid.Row="1" ItemsSource="{Binding FilteredMusicTracks}" SelectedItem="{Binding SelectedMusicTrack}"><ListBox.ItemTemplate><DataTemplate DataType="{x:Type models:MusicTrack}"><Border Style="{StaticResource GlassCardStyle}" Margin="0,0,0,8" Padding="12"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Detail}" Margin="0,5,0,0" Foreground="{StaticResource MutedTextBrush}" FontSize="11" /></StackPanel><Border Grid.Column="1" Padding="8,3" CornerRadius="8" Background="#3A7C5CFC" VerticalAlignment="Top"><TextBlock Text="{Binding Mood}" FontSize="11" /></Border></Grid></Border></DataTemplate></ListBox.ItemTemplate></ListBox></Grid>
-                    <Grid Grid.Row="3" Margin="0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding AppliedMusicSummary}" FontWeight="SemiBold" /><TextBlock Text="支持 MP3、WAV、M4A、AAC、WMA、FLAC、OGG" Margin="0,5,0,0" Foreground="{StaticResource MutedTextBrush}" FontSize="11" /></StackPanel><Button Grid.Column="1" Content="撤销应用" Command="{Binding UndoMusicCommand}" Padding="10,5" MinHeight="30" /></Grid>
+                    <Grid Grid.Row="2"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions><Grid Margin="0,0,0,8"><TextBlock Text="{Binding MusicResultSummary}" FontWeight="SemiBold" VerticalAlignment="Center" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="移除选中" Command="{Binding RemoveSelectedMusicCommand}" Padding="8,4" MinHeight="30" /><Button Content="清理失效" Command="{Binding RemoveMissingMusicCommand}" Margin="6,0,0,0" Padding="8,4" MinHeight="30" /></StackPanel></Grid><ListBox Grid.Row="1" ItemsSource="{Binding FilteredMusicTracks}" SelectedItem="{Binding SelectedMusicTrack}"><ListBox.ItemTemplate><DataTemplate DataType="{x:Type models:MusicTrack}"><Border Style="{StaticResource GlassCardStyle}" Margin="0,0,0,8" Padding="12"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Detail}" Margin="0,5,0,0" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" /></StackPanel><Border Grid.Column="1" Padding="8,3" CornerRadius="8" Background="{DynamicResource BadgeBrush}" VerticalAlignment="Top"><TextBlock Text="{Binding Mood}" FontSize="11" /></Border></Grid></Border></DataTemplate></ListBox.ItemTemplate></ListBox></Grid>
+                    <Grid Grid.Row="3" Margin="0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding AppliedMusicSummary}" FontWeight="SemiBold" /><TextBlock Text="支持 MP3、WAV、M4A、AAC、WMA、FLAC、OGG" Margin="0,5,0,0" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" /></StackPanel><Button Grid.Column="1" Content="撤销应用" Command="{Binding UndoMusicCommand}" Padding="10,5" MinHeight="30" /></Grid>
                     <Grid Grid.Row="4"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Button Content="{Binding PreviewActionLabel}" Command="{Binding ToggleMusicPreviewCommand}" Margin="0,0,6,0" /><Button Grid.Column="1" Content="应用选中音乐" Command="{Binding ApplySelectedMusicCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="6,0,0,0" /></Grid>
                 </Grid>
             </Border>
         </Grid>
 
-        <Grid Grid.ColumnSpan="2" Visibility="Collapsed">
+        <Grid Grid.ColumnSpan="2">
             <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsDraftPanelOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Grid.Style>
-            <Border Background="#A0000000" />
-            <Border Width="520" HorizontalAlignment="Right" Background="#FA161B25" BorderBrush="{StaticResource CardStrokeBrush}" BorderThickness="1,0,0,0" Padding="24">
+            <Border Background="{DynamicResource OverlayBrush}" />
+            <Border Width="520" HorizontalAlignment="Right" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource CardStrokeBrush}" BorderThickness="1,0,0,0" Padding="24">
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <Grid><StackPanel><TextBlock Text="预览并导出草稿" FontSize="23" FontWeight="SemiBold" /><TextBlock Text="集中检查后生成一个新的安全预览副本" Margin="0,4,0,0" Foreground="{StaticResource MutedTextBrush}" /></StackPanel><Button Content="关闭" Command="{Binding CloseDraftPanelCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" /></Grid>
-                    <Border Grid.Row="1" Style="{StaticResource GlassCardStyle}" Margin="0,18,0,12" Padding="14"><StackPanel><TextBlock Text="{Binding DraftCheckSummary}" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="输出位置由应用管理，绝不覆盖用户现有草稿。" Margin="0,5,0,0" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" /></StackPanel></Border>
-                    <ListBox Grid.Row="2" ItemsSource="{Binding DraftCheckItems}"><ListBox.ItemTemplate><DataTemplate DataType="{x:Type models:DraftCheckItem}"><Border Style="{StaticResource GlassCardStyle}" Margin="0,0,0,8" Padding="13"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding Title}" FontWeight="SemiBold" /><TextBlock Text="{Binding Detail}" Margin="0,5,10,0" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" /></StackPanel><TextBlock Grid.Column="1" Text="{Binding StatusLabel}" Foreground="{Binding StatusColor}" FontWeight="SemiBold" /></Grid></Border></DataTemplate></ListBox.ItemTemplate></ListBox>
-                    <Border Grid.Row="3" Padding="12" Margin="0,12" CornerRadius="10" Background="#422F4055"><TextBlock Text="当前输出是包含素材路径、分类、文案和音乐的项目预览。取得剪映样本并适配格式后，才会生成可直接打开的剪映副本。" TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" /></Border>
+                    <Grid><StackPanel><TextBlock Text="检查并生成项目预览" FontSize="23" FontWeight="SemiBold" /><TextBlock Text="确认素材、文案和音乐后生成预览文件" Margin="0,4,0,0" Foreground="{DynamicResource MutedTextBrush}" /></StackPanel><Button Content="关闭" Command="{Binding CloseDraftPanelCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" /></Grid>
+                    <Border Grid.Row="1" Style="{StaticResource GlassCardStyle}" Margin="0,18,0,12" Padding="14"><StackPanel><TextBlock Text="{Binding DraftCheckSummary}" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="请先处理标为“需要处理”的项目。" Margin="0,5,0,0" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" /></StackPanel></Border>
+                    <ListBox Grid.Row="2" ItemsSource="{Binding DraftCheckItems}"><ListBox.ItemTemplate><DataTemplate DataType="{x:Type models:DraftCheckItem}"><Border Style="{StaticResource GlassCardStyle}" Margin="0,0,0,8" Padding="13"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding Title}" FontWeight="SemiBold" /><TextBlock Text="{Binding Detail}" Margin="0,5,10,0" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" /></StackPanel><TextBlock Grid.Column="1" Text="{Binding StatusLabel}" FontWeight="SemiBold"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" /><Style.Triggers><DataTrigger Binding="{Binding IsBlocking}" Value="True"><Setter Property="Foreground" Value="{DynamicResource WarningBrush}" /></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></Grid></Border></DataTemplate></ListBox.ItemTemplate></ListBox>
+                    <Border Grid.Row="3" Padding="12" Margin="0,12" CornerRadius="10" Background="{DynamicResource NoticeBrush}"><TextBlock Text="本次生成的是项目预览文件，暂不能在剪映中直接打开。" TextWrapping="Wrap" Foreground="{DynamicResource MutedTextBrush}" /></Border>
                     <Grid Grid.Row="4"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><Button Content="{Binding DraftActionLabel}" Command="{Binding GenerateDraftCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,8,0" /><Button Grid.Column="1" Content="打开生成位置" Command="{Binding OpenLastDraftCommand}" /></Grid>
                 </Grid>
             </Border>

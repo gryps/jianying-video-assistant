@@ -12,6 +12,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly IMusicLibraryService _musicLibraryService;
     private readonly IMusicPreviewService _musicPreviewService;
     private readonly IDraftExporter _draftExporter;
+    private readonly IProjectStore _projectStore;
     private readonly Func<Task<string?>> _selectMediaFolder;
     private readonly Func<Task<IReadOnlyList<string>>> _selectMusicFiles;
     private readonly Action<string> _openFolder;
@@ -20,7 +21,7 @@ public sealed class MainViewModel : ObservableObject
     private string _projectName = "未命名视频项目";
     private string _statusText = "项目已建立，先导入一个素材文件夹";
     private string _importStatusTitle = "尚未导入素材";
-    private string _importStatusDetail = "支持递归扫描常见图片和视频；不会移动、重命名或修改源文件。";
+    private string _importStatusDetail = "选择文件夹，或把视频、图片和文件夹直接拖到窗口。";
     private double _progress;
     private bool _isImporting;
     private bool _isContentPanelOpen;
@@ -35,6 +36,11 @@ public sealed class MainViewModel : ObservableObject
     private bool _isPreviewingMusic;
     private bool _isExportingDraft;
     private string? _lastDraftPath;
+    private bool _isRestoringProject;
+    private string _selectedBulkCategory = "商品";
+    private string _customContentText = string.Empty;
+    private string _customContentPurpose = "卖点";
+    private ProjectScriptSegment? _selectedScriptSegment;
 
     public MainViewModel(
         IAssetImportService assetImportService,
@@ -42,6 +48,7 @@ public sealed class MainViewModel : ObservableObject
         IMusicLibraryService musicLibraryService,
         IMusicPreviewService musicPreviewService,
         IDraftExporter draftExporter,
+        IProjectStore projectStore,
         Func<Task<string?>> selectMediaFolder,
         Func<Task<IReadOnlyList<string>>> selectMusicFiles,
         Action<string> openFolder)
@@ -51,6 +58,7 @@ public sealed class MainViewModel : ObservableObject
         _musicLibraryService = musicLibraryService;
         _musicPreviewService = musicPreviewService;
         _draftExporter = draftExporter;
+        _projectStore = projectStore;
         _selectMediaFolder = selectMediaFolder;
         _selectMusicFiles = selectMusicFiles;
         _openFolder = openFolder;
@@ -64,16 +72,24 @@ public sealed class MainViewModel : ObservableObject
 
         NewProjectCommand = new RelayCommand(CreateNewProject);
         ImportMediaCommand = new AsyncRelayCommand(ImportMediaAsync, () => !IsImporting);
+        ApplyBulkCategoryCommand = new RelayCommand(ApplyBulkCategory, () => RecentAssets.Any(asset => asset.Category == "其他"));
+        RemoveMissingAssetsCommand = new RelayCommand(RemoveMissingAssets, () => RecentAssets.Any(asset => !File.Exists(asset.FullPath)));
         OpenContentPanelCommand = new RelayCommand(OpenContentPanel);
         CloseContentPanelCommand = new RelayCommand(ClosePanels);
         ApplySelectedContentCommand = new RelayCommand(ApplySelectedContent, () => SelectedContentSnippet is not null);
         UndoLastScriptSegmentCommand = new RelayCommand(UndoLastScriptSegment, () => ProjectScriptSegments.Count > 0);
+        AddCustomContentCommand = new RelayCommand(AddCustomContent, () => !string.IsNullOrWhiteSpace(CustomContentText));
+        RemoveSelectedScriptSegmentCommand = new RelayCommand(RemoveSelectedScriptSegment, () => SelectedScriptSegment is not null);
+        MoveScriptSegmentUpCommand = new RelayCommand(() => MoveSelectedScriptSegment(-1), CanMoveScriptSegmentUp);
+        MoveScriptSegmentDownCommand = new RelayCommand(() => MoveSelectedScriptSegment(1), CanMoveScriptSegmentDown);
         OpenMusicPanelCommand = new RelayCommand(OpenMusicPanel);
         CloseMusicPanelCommand = new RelayCommand(ClosePanels);
         ImportMusicCommand = new AsyncRelayCommand(ImportMusicAsync);
         ToggleMusicPreviewCommand = new AsyncRelayCommand(ToggleMusicPreviewAsync, () => SelectedMusicTrack is not null);
         ApplySelectedMusicCommand = new RelayCommand(ApplySelectedMusic, () => SelectedMusicTrack is not null);
         UndoMusicCommand = new RelayCommand(UndoMusic, () => _musicHistory.Count > 0);
+        RemoveSelectedMusicCommand = new RelayCommand(RemoveSelectedMusic, () => SelectedMusicTrack is not null);
+        RemoveMissingMusicCommand = new RelayCommand(RemoveMissingMusic, () => MusicTracks.Any(track => !File.Exists(track.FullPath)));
         OpenDraftPanelCommand = new RelayCommand(OpenDraftPanel);
         CloseDraftPanelCommand = new RelayCommand(ClosePanels);
         GenerateDraftCommand = new AsyncRelayCommand(GenerateDraftAsync, CanGenerateDraft);
@@ -81,18 +97,52 @@ public sealed class MainViewModel : ObservableObject
 
         WorkflowSteps =
         [
-            new("01", "\uEB9F", "添加素材", "选择素材文件夹，自动扫描视频和图片", "导入后可直接修正分类建议", "选择素材文件夹", "现在可用", true, ImportMediaCommand),
-            new("02", "\uE8A5", "添加视频文案", "按用途或关键词挑选完整句子", "采用后直接组成当前项目脚本", "添加视频文案", "现在可用", true, OpenContentPanelCommand),
-            new("03", "\uE8D6", "选择背景音乐", "导入本地音乐，按情绪筛选并试听", "应用后可随时替换或撤销", "选择背景音乐", "现在可用", true, OpenMusicPanelCommand),
-            new("04", "\uE74E", "导出剪映草稿", "集中检查素材、文案、音乐和输出位置", "生成安全预览副本，不覆盖原草稿", "预览并导出", "现在可用", true, OpenDraftPanelCommand)
+            new("01", "\uEB9F", "添加素材", "选择素材文件夹，自动扫描视频和图片", "导入后可直接修正分类建议", "选择素材文件夹", true, ImportMediaCommand),
+            new("02", "\uE8A5", "添加视频文案", "按用途或关键词挑选完整句子", "采用后直接组成当前项目脚本", "添加视频文案", true, OpenContentPanelCommand),
+            new("03", "\uE8D6", "选择背景音乐", "导入本地音乐，按情绪筛选并试听", "应用后可随时替换或撤销", "选择背景音乐", true, OpenMusicPanelCommand),
+            new("04", "\uE74E", "准备剪映草稿", "集中检查素材、文案、音乐和输出位置", "生成项目预览并可打开输出位置", "检查并生成预览", true, OpenDraftPanelCommand)
         ];
 
+        RestoreProject();
         RefreshContentResults();
         RefreshMusicResults();
         RefreshDraftChecks();
     }
 
-    public string Greeting => "按四步准备视频，所有功能都围绕当前项目展开";
+    public string Greeting => "无需先命名；导入素材后会自动采用文件夹名称";
+
+    public string SelectedBulkCategory
+    {
+        get => _selectedBulkCategory;
+        set => SetProperty(ref _selectedBulkCategory, value);
+    }
+
+    public string CustomContentText
+    {
+        get => _customContentText;
+        set
+        {
+            if (SetProperty(ref _customContentText, value)) AddCustomContentCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    public string CustomContentPurpose
+    {
+        get => _customContentPurpose;
+        set => SetProperty(ref _customContentPurpose, value);
+    }
+
+    public ProjectScriptSegment? SelectedScriptSegment
+    {
+        get => _selectedScriptSegment;
+        set
+        {
+            if (!SetProperty(ref _selectedScriptSegment, value)) return;
+            RemoveSelectedScriptSegmentCommand.NotifyCanExecuteChanged();
+            MoveScriptSegmentUpCommand.NotifyCanExecuteChanged();
+            MoveScriptSegmentDownCommand.NotifyCanExecuteChanged();
+        }
+    }
 
     public string ProjectName
     {
@@ -215,6 +265,7 @@ public sealed class MainViewModel : ObservableObject
                 StopPreview();
                 ToggleMusicPreviewCommand.NotifyCanExecuteChanged();
                 ApplySelectedMusicCommand.NotifyCanExecuteChanged();
+                RemoveSelectedMusicCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -277,7 +328,7 @@ public sealed class MainViewModel : ObservableObject
     public string MusicResultSummary => MusicTracks.Count == 0 ? "还没有导入本地音乐" : $"当前显示 {FilteredMusicTracks.Count} / {MusicTracks.Count} 首";
     public string AppliedMusicSummary => AppliedMusic is null ? "尚未应用背景音乐" : $"已应用：{AppliedMusic.Name} · {AppliedMusic.Mood}";
     public string PreviewActionLabel => IsPreviewingMusic ? "停止试听" : "试听选中音乐";
-    public string DraftActionLabel => IsExportingDraft ? "正在生成…" : "生成安全预览副本";
+    public string DraftActionLabel => IsExportingDraft ? "正在生成…" : "生成项目预览";
     public string DraftCheckSummary => DraftBlockingCount == 0 ? "检查通过，可以生成" : $"有 {DraftBlockingCount} 项需要处理";
     public int DraftBlockingCount => DraftCheckItems.Count(item => item.IsBlocking);
 
@@ -302,21 +353,30 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<MusicTrack> MusicTracks { get; }
     public ObservableCollection<MusicTrack> FilteredMusicTracks { get; }
     public ObservableCollection<DraftCheckItem> DraftCheckItems { get; }
+    public IReadOnlyList<string> AssetCategoryOptions => AssetCategories.All;
     public IReadOnlyList<string> ContentPurposeOptions { get; } = ["全部", "开头", "卖点", "转场", "结尾"];
     public IReadOnlyList<string> MusicMoodOptions => MusicMoods.All;
 
     public RelayCommand NewProjectCommand { get; }
     public AsyncRelayCommand ImportMediaCommand { get; }
+    public RelayCommand ApplyBulkCategoryCommand { get; }
+    public RelayCommand RemoveMissingAssetsCommand { get; }
     public RelayCommand OpenContentPanelCommand { get; }
     public RelayCommand CloseContentPanelCommand { get; }
     public RelayCommand ApplySelectedContentCommand { get; }
     public RelayCommand UndoLastScriptSegmentCommand { get; }
+    public RelayCommand AddCustomContentCommand { get; }
+    public RelayCommand RemoveSelectedScriptSegmentCommand { get; }
+    public RelayCommand MoveScriptSegmentUpCommand { get; }
+    public RelayCommand MoveScriptSegmentDownCommand { get; }
     public RelayCommand OpenMusicPanelCommand { get; }
     public RelayCommand CloseMusicPanelCommand { get; }
     public AsyncRelayCommand ImportMusicCommand { get; }
     public AsyncRelayCommand ToggleMusicPreviewCommand { get; }
     public RelayCommand ApplySelectedMusicCommand { get; }
     public RelayCommand UndoMusicCommand { get; }
+    public RelayCommand RemoveSelectedMusicCommand { get; }
+    public RelayCommand RemoveMissingMusicCommand { get; }
     public RelayCommand OpenDraftPanelCommand { get; }
     public RelayCommand CloseDraftPanelCommand { get; }
     public AsyncRelayCommand GenerateDraftCommand { get; }
@@ -324,6 +384,7 @@ public sealed class MainViewModel : ObservableObject
 
     private void CreateNewProject()
     {
+        _isRestoringProject = true;
         foreach (var asset in RecentAssets)
         {
             asset.PropertyChanged -= OnAssetPropertyChanged;
@@ -340,19 +401,31 @@ public sealed class MainViewModel : ObservableObject
         ClosePanels();
         ContentSearchText = string.Empty;
         SelectedContentPurpose = "全部";
+        CustomContentText = string.Empty;
+        CustomContentPurpose = "卖点";
+        SelectedScriptSegment = null;
         SelectedMusicMood = "全部";
         ProjectName = "未命名视频项目";
         StatusText = "已建立新项目，先导入一个素材文件夹";
         ImportStatusTitle = "尚未导入素材";
-        ImportStatusDetail = "支持递归扫描常见图片和视频；不会移动、重命名或修改源文件。";
+        ImportStatusDetail = "选择文件夹，或把视频、图片和文件夹直接拖到窗口。";
         WorkflowSteps[0].Summary = "导入后可直接修正分类建议";
         WorkflowSteps[1].Summary = "采用后直接组成当前项目脚本";
         WorkflowSteps[2].Summary = "应用后可随时替换或撤销";
-        WorkflowSteps[3].Summary = "生成安全预览副本，不覆盖原草稿";
+        WorkflowSteps[3].Summary = "生成项目预览并可打开输出位置";
         NotifyScriptChanged();
         NotifyMusicChanged();
         RefreshDraftChecks();
         UpdateProjectProgress();
+        _isRestoringProject = false;
+        try
+        {
+            _projectStore.Clear();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            StatusText = $"无法清除上次保存的项目：{exception.Message}";
+        }
     }
 
     private async Task ImportMediaAsync()
@@ -382,21 +455,7 @@ public sealed class MainViewModel : ObservableObject
         try
         {
             var result = await _assetImportService.ImportFolderAsync(folderPath);
-            var existingPaths = RecentAssets.Select(asset => asset.FullPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var addedCount = 0;
-            foreach (var asset in result.Assets.Where(asset => existingPaths.Add(asset.FullPath)))
-            {
-                asset.PropertyChanged += OnAssetPropertyChanged;
-                RecentAssets.Add(asset);
-                addedCount++;
-            }
-
-            UpdateAssetSummary();
-            var folderName = Path.GetFileName(result.FolderPath.TrimEnd(Path.DirectorySeparatorChar));
-            ImportStatusTitle = result.Assets.Count == 0 ? $"{folderName} 中没有支持的素材" : $"已从 {folderName} 识别 {result.Assets.Count} 个素材";
-            ImportStatusDetail = BuildImportDetail(addedCount, result.Assets.Count, result.SkippedDirectoryCount);
-            StatusText = addedCount > 0 ? $"已加入 {addedCount} 个素材；分类建议可在列表中修改" : "扫描完成，没有新增素材";
-            InvalidateDraft();
+            AddImportedAssets(result, "扫描完成");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or DirectoryNotFoundException)
         {
@@ -410,12 +469,60 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public async Task ImportDroppedPathsAsync(IReadOnlyList<string> paths)
+    {
+        if (IsImporting || paths.Count == 0) return;
+        IsImporting = true;
+        StatusText = "正在导入拖入的素材…";
+        ImportStatusTitle = "正在读取拖入内容";
+        ImportStatusDetail = "文件夹中的子目录会一并扫描。";
+        try
+        {
+            var result = await _assetImportService.ImportPathsAsync(paths);
+            AddImportedAssets(result, "拖入完成");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or DirectoryNotFoundException)
+        {
+            ImportStatusTitle = "拖入素材失败";
+            ImportStatusDetail = exception.Message;
+            StatusText = "无法读取拖入内容，请检查文件是否仍然存在";
+        }
+        finally
+        {
+            IsImporting = false;
+        }
+    }
+
+    private void AddImportedAssets(AssetImportResult result, string completedLabel)
+    {
+        var existingPaths = RecentAssets.Select(asset => asset.FullPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var addedCount = 0;
+        foreach (var asset in result.Assets.Where(asset => existingPaths.Add(asset.FullPath)))
+        {
+            asset.PropertyChanged += OnAssetPropertyChanged;
+            RecentAssets.Add(asset);
+            addedCount++;
+        }
+
+        UpdateAssetSummary();
+        var folderName = Path.GetFileName(result.FolderPath.TrimEnd(Path.DirectorySeparatorChar));
+        if ((string.IsNullOrWhiteSpace(ProjectName) || ProjectName == "未命名视频项目") && !string.IsNullOrWhiteSpace(folderName))
+        {
+            ProjectName = folderName;
+        }
+        ImportStatusTitle = result.Assets.Count == 0
+            ? "没有找到支持的素材"
+            : $"{completedLabel}：识别 {result.Assets.Count} 个素材";
+        ImportStatusDetail = BuildImportDetail(addedCount, result.Assets.Count, result.SkippedDirectoryCount);
+        StatusText = addedCount > 0 ? $"已加入 {addedCount} 个素材；分类建议可在列表中修改" : "没有新增素材";
+        InvalidateDraft();
+    }
+
     private static string BuildImportDetail(int addedCount, int scannedCount, int skippedDirectoryCount)
     {
         var details = new List<string> { $"新增 {addedCount} 个" };
         if (scannedCount - addedCount > 0) details.Add($"跳过 {scannedCount - addedCount} 个重复文件");
         if (skippedDirectoryCount > 0) details.Add($"{skippedDirectoryCount} 个目录无权访问");
-        details.Add("源文件保持不变");
         return string.Join(" · ", details);
     }
 
@@ -437,6 +544,33 @@ public sealed class MainViewModel : ObservableObject
                 ? $"{RecentAssets.Count} 个素材 · 分类已确认"
                 : $"{RecentAssets.Count} 个素材 · {pendingCount} 个建议待确认";
         UpdateProjectProgress();
+        ApplyBulkCategoryCommand.NotifyCanExecuteChanged();
+        RemoveMissingAssetsCommand.NotifyCanExecuteChanged();
+    }
+
+    private void ApplyBulkCategory()
+    {
+        var targets = RecentAssets.Where(asset => asset.Category == "其他").ToArray();
+        if (targets.Length == 0) return;
+        _isRestoringProject = true;
+        foreach (var asset in targets) asset.Category = SelectedBulkCategory;
+        _isRestoringProject = false;
+        UpdateAssetSummary();
+        StatusText = $"已将 {targets.Length} 个待确认素材设为{SelectedBulkCategory}";
+        InvalidateDraft();
+    }
+
+    private void RemoveMissingAssets()
+    {
+        var missing = RecentAssets.Where(asset => !File.Exists(asset.FullPath)).ToArray();
+        foreach (var asset in missing)
+        {
+            asset.PropertyChanged -= OnAssetPropertyChanged;
+            RecentAssets.Remove(asset);
+        }
+        UpdateAssetSummary();
+        StatusText = $"已移除 {missing.Length} 个失效素材";
+        InvalidateDraft();
     }
 
     private void OpenContentPanel()
@@ -476,11 +610,59 @@ public sealed class MainViewModel : ObservableObject
         InvalidateDraft();
     }
 
+    private void AddCustomContent()
+    {
+        var text = CustomContentText.Trim();
+        if (text.Length == 0) return;
+        var segment = new ProjectScriptSegment($"custom-{Guid.NewGuid():N}", CustomContentPurpose, text);
+        ProjectScriptSegments.Add(segment);
+        SelectedScriptSegment = segment;
+        CustomContentText = string.Empty;
+        StatusText = $"已加入一段自定义{segment.Purpose}文案";
+        NotifyScriptChanged();
+        InvalidateDraft();
+    }
+
+    private void RemoveSelectedScriptSegment()
+    {
+        if (SelectedScriptSegment is not { } segment) return;
+        ProjectScriptSegments.Remove(segment);
+        SelectedScriptSegment = null;
+        StatusText = $"已从脚本移除一段{segment.Purpose}文案";
+        NotifyScriptChanged();
+        InvalidateDraft();
+    }
+
+    private bool CanMoveScriptSegmentUp()
+        => SelectedScriptSegment is not null && ProjectScriptSegments.IndexOf(SelectedScriptSegment) > 0;
+
+    private bool CanMoveScriptSegmentDown()
+        => SelectedScriptSegment is not null
+            && ProjectScriptSegments.IndexOf(SelectedScriptSegment) is var index
+            && index >= 0
+            && index < ProjectScriptSegments.Count - 1;
+
+    private void MoveSelectedScriptSegment(int offset)
+    {
+        if (SelectedScriptSegment is not { } segment) return;
+        var oldIndex = ProjectScriptSegments.IndexOf(segment);
+        var newIndex = oldIndex + offset;
+        if (oldIndex < 0 || newIndex < 0 || newIndex >= ProjectScriptSegments.Count) return;
+        ProjectScriptSegments.Move(oldIndex, newIndex);
+        StatusText = "已调整脚本文案顺序";
+        MoveScriptSegmentUpCommand.NotifyCanExecuteChanged();
+        MoveScriptSegmentDownCommand.NotifyCanExecuteChanged();
+        InvalidateDraft();
+    }
+
     private void NotifyScriptChanged()
     {
         WorkflowSteps[1].Summary = ProjectScriptSegments.Count == 0 ? "采用后直接组成当前项目脚本" : $"项目脚本已有 {ProjectScriptSegments.Count} 段";
         OnPropertyChanged(nameof(ScriptSummary));
         UndoLastScriptSegmentCommand.NotifyCanExecuteChanged();
+        RemoveSelectedScriptSegmentCommand.NotifyCanExecuteChanged();
+        MoveScriptSegmentUpCommand.NotifyCanExecuteChanged();
+        MoveScriptSegmentDownCommand.NotifyCanExecuteChanged();
         UpdateProjectProgress();
     }
 
@@ -506,6 +688,7 @@ public sealed class MainViewModel : ObservableObject
 
         RefreshMusicResults();
         StatusText = added > 0 ? $"已加入 {added} 首本地音乐，可试听后应用" : "没有新增音乐；不支持的格式或重复文件已跳过";
+        SaveProject();
     }
 
     private void RefreshMusicResults()
@@ -571,6 +754,32 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(MusicResultSummary));
         OnPropertyChanged(nameof(AppliedMusicSummary));
         UndoMusicCommand.NotifyCanExecuteChanged();
+        RemoveMissingMusicCommand.NotifyCanExecuteChanged();
+    }
+
+    private void RemoveSelectedMusic()
+    {
+        if (SelectedMusicTrack is not { } track) return;
+        StopPreview();
+        if (AppliedMusic?.Id == track.Id) AppliedMusic = null;
+        MusicTracks.Remove(track);
+        RefreshMusicResults();
+        StatusText = $"已从列表移除 {track.Name}";
+        NotifyMusicChanged();
+        SaveProject();
+    }
+
+    private void RemoveMissingMusic()
+    {
+        var missing = MusicTracks.Where(track => !File.Exists(track.FullPath)).ToArray();
+        if (missing.Length == 0) return;
+        StopPreview();
+        if (AppliedMusic is not null && missing.Any(track => track.Id == AppliedMusic.Id)) AppliedMusic = null;
+        foreach (var track in missing) MusicTracks.Remove(track);
+        RefreshMusicResults();
+        StatusText = $"已清理 {missing.Length} 个失效音乐文件";
+        NotifyMusicChanged();
+        SaveProject();
     }
 
     private void OpenDraftPanel()
@@ -578,7 +787,7 @@ public sealed class MainViewModel : ObservableObject
         ClosePanels();
         RefreshDraftChecks();
         IsDraftPanelOpen = true;
-        StatusText = DraftBlockingCount == 0 ? "草稿预检通过，可以生成安全预览副本" : "请先处理草稿检查中的阻塞项";
+        StatusText = DraftBlockingCount == 0 ? "检查通过，可以生成项目预览" : "请先处理草稿检查中的阻塞项";
     }
 
     private void RefreshDraftChecks()
@@ -597,10 +806,6 @@ public sealed class MainViewModel : ObservableObject
             "背景音乐",
             AppliedMusic is null ? "未选择音乐，可继续生成" : File.Exists(AppliedMusic.FullPath) ? $"已选择 {AppliedMusic.Name}" : "所选音乐路径已失效",
             AppliedMusic is not null && !File.Exists(AppliedMusic.FullPath)));
-        DraftCheckItems.Add(new DraftCheckItem(
-            "安全输出",
-            "仅写入应用工作目录，不读取或覆盖剪映原草稿",
-            false));
         OnPropertyChanged(nameof(DraftBlockingCount));
         OnPropertyChanged(nameof(DraftCheckSummary));
         GenerateDraftCommand.NotifyCanExecuteChanged();
@@ -629,9 +834,10 @@ public sealed class MainViewModel : ObservableObject
             }
 
             LastDraftPath = result.PreviewPath;
-            WorkflowSteps[3].Summary = "安全预览副本已生成 · 可打开所在位置";
-            StatusText = result.Messages.FirstOrDefault() ?? "安全预览副本已生成";
+            WorkflowSteps[3].Summary = "项目预览已生成 · 可打开所在位置";
+            StatusText = result.Messages.FirstOrDefault() ?? "项目预览已生成，可打开所在位置";
             UpdateProjectProgress();
+            SaveProject();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -657,6 +863,80 @@ public sealed class MainViewModel : ObservableObject
         }
         if (IsDraftPanelOpen) RefreshDraftChecks();
         UpdateProjectProgress();
+        SaveProject();
+    }
+
+    public void SaveNow() => SaveProject();
+
+    private void RestoreProject()
+    {
+        _isRestoringProject = true;
+        try
+        {
+            var snapshot = _projectStore.Load();
+            if (snapshot is null) return;
+
+            _projectName = string.IsNullOrWhiteSpace(snapshot.ProjectName) ? "未命名视频项目" : snapshot.ProjectName;
+            foreach (var savedAsset in snapshot.Assets)
+            {
+                var asset = new MediaAsset(
+                    savedAsset.FullPath,
+                    savedAsset.Name,
+                    savedAsset.Detail,
+                    savedAsset.Category,
+                    savedAsset.CategorySourceLabel);
+                asset.PropertyChanged += OnAssetPropertyChanged;
+                RecentAssets.Add(asset);
+            }
+
+            foreach (var segment in snapshot.ScriptSegments) ProjectScriptSegments.Add(segment);
+            foreach (var track in snapshot.MusicTracks) MusicTracks.Add(track);
+            _appliedMusic = MusicTracks.FirstOrDefault(track => track.Id == snapshot.AppliedMusicId);
+            _lastDraftPath = snapshot.LastPreviewPath is not null && Directory.Exists(snapshot.LastPreviewPath)
+                ? snapshot.LastPreviewPath
+                : null;
+
+            UpdateAssetSummary();
+            NotifyScriptChanged();
+            NotifyMusicChanged();
+            if (AppliedMusic is not null) WorkflowSteps[2].Summary = $"已应用 {AppliedMusic.Name} · {AppliedMusic.Mood}";
+            if (LastDraftPath is not null) WorkflowSteps[3].Summary = "项目预览已生成 · 可打开所在位置";
+            StatusText = "已恢复上次项目，可以继续编辑";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            StatusText = $"无法恢复上次项目：{exception.Message}";
+        }
+        finally
+        {
+            _isRestoringProject = false;
+        }
+    }
+
+    private void SaveProject()
+    {
+        if (_isRestoringProject) return;
+        try
+        {
+            var snapshot = new ProjectSnapshot(
+                ProjectSnapshot.CurrentVersion,
+                ProjectName,
+                RecentAssets.Select(asset => new SavedMediaAsset(
+                    asset.FullPath,
+                    asset.Name,
+                    asset.Detail,
+                    asset.Category,
+                    asset.CategorySourceLabel)).ToArray(),
+                ProjectScriptSegments.ToArray(),
+                MusicTracks.ToArray(),
+                AppliedMusic?.Id,
+                LastDraftPath);
+            _projectStore.Save(snapshot);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            StatusText = $"项目暂未保存：{exception.Message}";
+        }
     }
 
     private void ClosePanels()

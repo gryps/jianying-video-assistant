@@ -17,28 +17,56 @@ public sealed class LocalAssetImportService(MediaCategoryClassifier classifier) 
     public Task<AssetImportResult> ImportFolderAsync(string folderPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(folderPath);
-        return Task.Run(() => ScanFolder(folderPath));
+        return ImportPathsAsync([folderPath]);
     }
 
-    private AssetImportResult ScanFolder(string folderPath)
+    public Task<AssetImportResult> ImportPathsAsync(IReadOnlyList<string> paths)
     {
-        if (!Directory.Exists(folderPath))
+        ArgumentNullException.ThrowIfNull(paths);
+        if (paths.Count == 0) return Task.FromResult(new AssetImportResult(string.Empty, [], 0));
+        return Task.Run(() => ScanPaths(paths));
+    }
+
+    private AssetImportResult ScanPaths(IReadOnlyList<string> paths)
+    {
+        var assets = new List<MediaAsset>();
+        var assetPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var skippedDirectoryCount = 0;
+        var sourceRoot = paths.Select(path => Directory.Exists(path) ? path : Path.GetDirectoryName(path))
+            .FirstOrDefault(path => !string.IsNullOrWhiteSpace(path)) ?? string.Empty;
+
+        foreach (var path in paths.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            throw new DirectoryNotFoundException($"找不到素材文件夹：{folderPath}");
+            if (Directory.Exists(path))
+            {
+                ScanFolder(path, assets, assetPaths, ref skippedDirectoryCount);
+            }
+            else if (File.Exists(path) && TryCreateAsset(Path.GetDirectoryName(path) ?? string.Empty, path, out var asset)
+                && assetPaths.Add(asset.FullPath))
+            {
+                assets.Add(asset);
+            }
         }
 
-        var assets = new List<MediaAsset>();
-        var directories = new Stack<string>();
-        var skippedDirectoryCount = 0;
-        directories.Push(folderPath);
+        assets.Sort((left, right) => StringComparer.CurrentCultureIgnoreCase.Compare(left.Name, right.Name));
+        return new AssetImportResult(sourceRoot, assets, skippedDirectoryCount);
+    }
 
+    private void ScanFolder(
+        string folderPath,
+        ICollection<MediaAsset> assets,
+        ISet<string> assetPaths,
+        ref int skippedDirectoryCount)
+    {
+        var directories = new Stack<string>();
+        directories.Push(folderPath);
         while (directories.TryPop(out var currentDirectory))
         {
             try
             {
                 foreach (var filePath in Directory.EnumerateFiles(currentDirectory))
                 {
-                    if (TryCreateAsset(folderPath, filePath, out var asset))
+                    if (TryCreateAsset(folderPath, filePath, out var asset) && assetPaths.Add(asset.FullPath))
                     {
                         assets.Add(asset);
                     }
@@ -48,16 +76,9 @@ public sealed class LocalAssetImportService(MediaCategoryClassifier classifier) 
                 {
                     try
                     {
-                        var attributes = File.GetAttributes(childDirectory);
-                        if (!attributes.HasFlag(FileAttributes.ReparsePoint))
-                        {
-                            directories.Push(childDirectory);
-                        }
+                        if (!File.GetAttributes(childDirectory).HasFlag(FileAttributes.ReparsePoint)) directories.Push(childDirectory);
                     }
-                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-                    {
-                        skippedDirectoryCount++;
-                    }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { skippedDirectoryCount++; }
                 }
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -65,9 +86,6 @@ public sealed class LocalAssetImportService(MediaCategoryClassifier classifier) 
                 skippedDirectoryCount++;
             }
         }
-
-        assets.Sort((left, right) => StringComparer.CurrentCultureIgnoreCase.Compare(left.Name, right.Name));
-        return new AssetImportResult(folderPath, assets, skippedDirectoryCount);
     }
 
     private bool TryCreateAsset(string rootPath, string filePath, out MediaAsset asset)

@@ -18,7 +18,7 @@ Adapters (application working files and version-specific Jianying formats)
 
 素材导入通过 `IAssetImportService` 注入工作台 ViewModel；`LocalAssetImportService` 只读扫描文件，跳过重解析点目录并统计无权访问的目录，`MediaCategoryClassifier` 提供可人工覆盖的规则建议。WPF 的 `OpenFolderDialog` 只保留在窗口代码后置中。
 
-文案通过 `IContentLibraryService` 注入；`LocalContentLibraryService` 提供本地片段和内存筛选。检索、采用、重复提示、撤销与进度均由 ViewModel 维护。
+文案通过 `IContentLibraryService` 注入；`LocalContentLibraryService` 提供本地片段和内存筛选。检索、采用、自定义录入、排序、删除、重复提示、撤销与进度均由 ViewModel 维护，项目脚本通过 `IProjectStore` 持久化。
 
 ## 背景音乐
 

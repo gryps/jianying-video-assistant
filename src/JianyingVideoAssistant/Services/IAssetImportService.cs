@@ -5,6 +5,7 @@ namespace JianyingVideoAssistant.Services;
 public interface IAssetImportService
 {
     Task<AssetImportResult> ImportFolderAsync(string folderPath);
+    Task<AssetImportResult> ImportPathsAsync(IReadOnlyList<string> paths);
 }
 
 public sealed record AssetImportResult(

@@ -7,12 +7,13 @@ public sealed class MediaAsset : ObservableObject
     private string _category;
     private string _categorySourceLabel = "自动建议";
 
-    public MediaAsset(string fullPath, string name, string detail, string category)
+    public MediaAsset(string fullPath, string name, string detail, string category, string categorySourceLabel = "自动建议")
     {
         FullPath = fullPath;
         Name = name;
         Detail = detail;
         _category = category;
+        _categorySourceLabel = categorySourceLabel;
     }
 
     public string FullPath { get; }
