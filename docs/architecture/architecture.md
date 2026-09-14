@@ -3,34 +3,39 @@
 ## 分层
 
 ```text
-Views (XAML / code-behind only for window behavior)
+Views (WPF XAML / code-behind only for window behavior and native pickers)
   ↓ binding
-ViewModels (screen state and commands)
+ViewModels (project state and commands)
   ↓ interfaces
-Services (media scan, content search, audio preview, draft generation)
+Services (media scan, content search, local audio preview)
   ↓
-Adapters (filesystem and version-specific Jianying draft formats)
+Adapters (application working files and version-specific Jianying formats)
 ```
 
-素材导入通过 `IAssetImportService` 注入工作台 ViewModel，`LocalAssetImportService` 负责只读文件扫描，`MediaCategoryClassifier` 负责可替换的规则分类。系统 `FolderPicker` 及 HWND 初始化只保留在窗口代码后置中。后续播放器或草稿 JSON 逻辑同样不得进入页面代码。
+界面层于 2026-09-14 从 WinUI 3 迁移到 WPF。原因是目标 Windows 环境中的空白 WinUI 程序也会在原生 XAML/Input 组件中崩溃，而 WPF 探针能在同一登录桌面会话正常驻留。模型、ViewModel、服务接口和草稿安全边界保持不变。
 
-素材扫描在后台线程执行，跳过重解析点目录以避免目录环；结果回到 UI 线程后再写入 `ObservableCollection`。项目当前只保留素材路径与内存分类状态，尚未把用户纠错持久化到磁盘。
+## 素材与文案
 
-## 毛玻璃策略
+素材导入通过 `IAssetImportService` 注入工作台 ViewModel；`LocalAssetImportService` 只读扫描文件，跳过重解析点目录并统计无权访问的目录，`MediaCategoryClassifier` 提供可人工覆盖的规则建议。WPF 的 `OpenFolderDialog` 只保留在窗口代码后置中。
 
-- 主窗口使用系统 `MicaBackdrop`，适合作为持久窗口底层。
-- 卡片使用半透明主题资源，让 Mica 可见，同时保持文本对比度。
-- Acrylic 只用于后续短暂浮层，不用于整页内容。
-- Windows 10 或系统关闭透明效果时接受系统实色回退，不自行模拟高成本实时模糊。
+文案通过 `IContentLibraryService` 注入；`LocalContentLibraryService` 提供本地片段和内存筛选。检索、采用、重复提示、撤销与进度均由 ViewModel 维护。
 
-## 首版部署形态
+## 背景音乐
 
-首版继续采用 unpackaged 配置，同时提供 `win-x64-self-contained` 发布配置，让 .NET 10 运行时和 Windows App SDK 组件一起进入发布目录。用户无需另装 .NET，但必须保留完整目录，不能只分发 exe。该配置不启用单文件合并或裁剪，以降低 WinUI 3 原生组件和反射代码在部署时缺失的风险。
-
-开发构建保持框架依赖，避免扩大日常构建和核心测试的输出体积。完整自包含只在 `dotnet publish` 时启用。Packaged/MSIX 形态仍留到正式发布阶段验证，届时补齐清单、应用图标、签名和干净安装/卸载测试。这个选择不改变 View、ViewModel 或服务层结构。
-
-Windows App SDK 虽可回溯运行到 Windows 10 1809，但该系统版本已不在常规支持范围。产品验收以 Windows 10 22H2 的实色回退和 Windows 11 的 Mica 效果为主；1809 只作为尽力兼容目标。
+`LocalMusicLibraryService` 过滤支持的本地音频并根据文件名/目录名建议情绪。`WpfMusicPreviewService` 是唯一依赖 WPF 媒体 API 的服务实现，ViewModel 只依赖 `IMusicPreviewService`。应用音乐只记录原路径，试听不会修改或复制源文件。
 
 ## 草稿安全边界
 
-`IDraftExporter` 的输出根目录必须由应用控制。尚未完成格式版本探测、样本回归测试和原草稿备份前，禁止直接写入剪映用户草稿目录。
+所有输出通过 `IDraftExporter` 及适配器层完成。当前 `JianyingDraftPreviewAdapter` 的工作根目录由组合根固定到 `%LocalAppData%\JianyingVideoAssistant\DraftPreviews`，每次生成独立目录，只包含 `project-preview.json` 和说明文件。
+
+当前输出明确不是剪映原生草稿。没有完成格式版本探测、真实样本回归和副本打开测试前，禁止写入剪映用户草稿目录，也禁止生成看似真实的 `draft_content.json`。
+
+## 毛玻璃与回退
+
+- Windows 11 尝试通过 DWM 系统背景属性呈现窗口材质。
+- 内容面板和卡片使用高对比度半透明表面。
+- DWM API 不可用或透明效果关闭时，应用资源提供深色实色/半透明回退，不影响功能。
+
+## 部署
+
+首版发布 x64 自包含目录，携带 .NET 10 Desktop Runtime，目标机无需安装 .NET。发布目录必须整体分发；当前不启用单文件合并和裁剪。MSIX、签名和自动更新留待正式发布阶段。

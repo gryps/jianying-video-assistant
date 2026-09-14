@@ -1,45 +1,64 @@
-using JianyingVideoAssistant.ViewModels;
+using System.Diagnostics;
+using System.Windows;
+using JianyingVideoAssistant.Adapters;
+using JianyingVideoAssistant.Infrastructure;
 using JianyingVideoAssistant.Services;
-using Microsoft.UI.Windowing;
-using Microsoft.UI.Xaml;
-using Windows.Graphics;
-using Windows.Storage.Pickers;
-using WinRT.Interop;
+using JianyingVideoAssistant.ViewModels;
+using Microsoft.Win32;
 
 namespace JianyingVideoAssistant;
 
-public sealed partial class MainWindow : Window
+public partial class MainWindow : Window
 {
-    public MainViewModel ViewModel { get; }
+    private readonly WpfMusicPreviewService _musicPreviewService = new();
 
     public MainWindow()
     {
-        var assetImportService = new LocalAssetImportService(new MediaCategoryClassifier());
-        ViewModel = new MainViewModel(assetImportService, PickMediaFolderAsync);
         InitializeComponent();
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
-        ResizeWindow();
+        var draftRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "JianyingVideoAssistant",
+            "DraftPreviews");
+        DataContext = new MainViewModel(
+            new LocalAssetImportService(new MediaCategoryClassifier()),
+            new LocalContentLibraryService(),
+            new LocalMusicLibraryService(),
+            _musicPreviewService,
+            new JianyingDraftPreviewAdapter(draftRoot),
+            PickMediaFolderAsync,
+            PickMusicFilesAsync,
+            OpenFolder);
     }
 
-    private async Task<string?> PickMediaFolderAsync()
+    private void OnSourceInitialized(object? sender, EventArgs e) => WindowBackdrop.TryApply(this);
+
+    private static Task<string?> PickMediaFolderAsync()
     {
-        var picker = new FolderPicker
+        var dialog = new OpenFolderDialog
         {
-            SuggestedStartLocation = PickerLocationId.VideosLibrary
+            Title = "选择素材文件夹",
+            Multiselect = false
         };
-        picker.FileTypeFilter.Add("*");
-
-        var windowHandle = WindowNative.GetWindowHandle(this);
-        InitializeWithWindow.Initialize(picker, windowHandle);
-        var folder = await picker.PickSingleFolderAsync();
-        return folder?.Path;
+        return Task.FromResult(dialog.ShowDialog() == true ? dialog.FolderName : null);
     }
 
-    private void ResizeWindow()
+    private static Task<IReadOnlyList<string>> PickMusicFilesAsync()
     {
-        var windowHandle = WindowNative.GetWindowHandle(this);
-        var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(windowHandle);
-        AppWindow.GetFromWindowId(windowId).Resize(new SizeInt32(1240, 820));
+        var dialog = new OpenFileDialog
+        {
+            Title = "选择本地背景音乐",
+            Filter = "音频文件|*.mp3;*.wav;*.m4a;*.aac;*.wma;*.flac;*.ogg|所有文件|*.*",
+            Multiselect = true
+        };
+        IReadOnlyList<string> result = dialog.ShowDialog() == true ? dialog.FileNames : [];
+        return Task.FromResult(result);
     }
+
+    private static void OpenFolder(string path)
+    {
+        if (!Directory.Exists(path)) return;
+        Process.Start(new ProcessStartInfo("explorer.exe", path) { UseShellExecute = true });
+    }
+
+    private void OnClosed(object? sender, EventArgs e) => _musicPreviewService.Dispose();
 }

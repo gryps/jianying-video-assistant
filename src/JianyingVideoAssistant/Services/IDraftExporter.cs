@@ -1,3 +1,5 @@
+using JianyingVideoAssistant.Models;
+
 namespace JianyingVideoAssistant.Services;
 
 public interface IDraftExporter
@@ -9,8 +11,9 @@ public interface IDraftExporter
 
 public sealed record DraftExportRequest(
     string ProjectName,
-    IReadOnlyList<string> MediaPaths,
-    string OutputDirectory);
+    IReadOnlyList<DraftMediaItem> Media,
+    IReadOnlyList<ProjectScriptSegment> Script,
+    MusicTrack? Music);
 
 public sealed record DraftExportResult(
     bool Succeeded,
