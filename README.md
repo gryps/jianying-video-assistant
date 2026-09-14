@@ -1,45 +1,39 @@
 # 剪映视频助手
 
-一款以“当前视频项目”为中心的 Windows 桌面助手，把素材整理、文案选择、背景音乐和草稿预检收敛到同一个工作台。
+“剪映视频助手”是现有视频生产工作台的 Windows 桌面客户端。它直接连接 `192.168.31.24` 的权威服务，共享同一套账号、数据和业务流程，不再维护一套偏离 Web 产品的本地“当前项目”。
 
-## 当前功能
+## 功能
 
-- 素材：选择或拖入文件/文件夹，扫描常见图片和视频，自动建议分类，支持逐项纠正、批量归类和失效路径清理。
-- 文案：按用途和关键词筛选本地片段，也可直接输入自己的文案；脚本支持排序、删除和撤销。
-- 音乐：导入本地音频，按情绪筛选、试听、应用、撤销和清理失效项；不会复制或修改音频文件。
-- 草稿：集中检查素材路径、文案和音乐，向应用工作目录生成包含 `project-preview.json` 的安全预览副本。
-- 项目：有效修改会自动保存，重新打开应用后恢复上次进度。
+- 生产总览：素材、文案、音乐和剪映草稿指标及五步生产流程。
+- 素材归类：产品、标签分类、标签名称管理，多视频上传与事务化归类。
+- 内容文库：AI 文案迭代、文案库、597 音色、旁白与字幕、音频转文案。
+- 背景音乐：本地/链接入库、试听、重命名、多标签和引用保护。
+- 剪映草稿：不写视频轨，组合文案、旁白字幕、音乐生成原生草稿。
+- 模型配置：文案生成、语音识别、字幕配音独立配置与脱敏调用日志。
 
-草稿输出目前是结构化项目预览，不是剪映可直接打开的原生草稿。必须取得真实剪映草稿样本并完成版本适配后，才能安全生成原生副本；应用始终禁止覆盖用户已有草稿。
+## 技术
 
-## 技术栈
+- C# / .NET 10 / WPF
+- Microsoft Edge WebView2
+- Windows x64 self-contained 发布
+- 默认连接 `http://192.168.31.24:8000/workbench/`
 
-- C# / .NET 10
-- WPF
-- MVVM（项目内轻量实现，无第三方 MVVM 依赖）
-- Windows 11 使用 DWM 系统背景；不支持时按系统主题回退到实色背景
+目标机无需另装 .NET；需要系统 Edge WebView2 Runtime。当前目标机已验证安装。登录状态保存在应用自己的 WebView2 用户数据目录。
 
-界面已从 WinUI 3 迁移到 WPF，因为目标 Windows 机器连空白 WinUI 程序都会在原生 XAML/Input 组件中崩溃。模型、ViewModel 和服务边界保持不变。
-
-## Windows 开发环境
+## Windows 构建
 
 ```powershell
 dotnet restore src/JianyingVideoAssistant/JianyingVideoAssistant.csproj
 dotnet build JianyingVideoAssistant.sln -c Release -p:Platform=x64
 dotnet run --project tests/JianyingVideoAssistant.CoreSmokeTests -c Release -p:Platform=x64
-```
-
-## Windows 自包含发布
-
-```powershell
 dotnet publish src/JianyingVideoAssistant/JianyingVideoAssistant.csproj `
   -p:PublishProfile=win-x64-self-contained
 ```
 
-发布目录携带 .NET Desktop 运行时，目标机不需要另行安装 .NET。必须整体分发 `publish` 目录，不能只复制其中的 exe。
+发布目录必须整体分发，不能只复制其中的 exe。服务地址需要变更时设置环境变量 `JVA_WORKBENCH_URL`。
 
-## 产品与工程文档
+## 文档
 
-- [产品流程](docs/product/product-design.md)
+- [产品基线](docs/product/product-design.md)
+- [工程架构](docs/architecture/architecture.md)
 - [项目上下文](docs/agent/project-context.md)
-- [工程决策](docs/architecture/architecture.md)

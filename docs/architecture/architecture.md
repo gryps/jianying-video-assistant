@@ -1,41 +1,41 @@
 # 工程架构
 
-## 分层
+## 当前形态
 
 ```text
-Views (WPF XAML / code-behind only for window behavior and native pickers)
-  ↓ binding
-ViewModels (project state and commands)
-  ↓ interfaces
-Services (media scan, content search, local audio preview)
-  ↓
-Adapters (application working files and version-specific Jianying formats)
+WPF 自包含桌面外壳
+├── MainWindow：连接状态、重试、浏览器替代入口
+├── WebView2：承载 192.168.31.24 的权威工作台
+└── WorkbenchEndpoint：默认地址与部署覆盖
+        ↓ HTTP
+FastAPI / PostgreSQL / 媒体服务 / AI 模型配置（192.168.31.24）
 ```
 
-界面层于 2026-09-14 从 WinUI 3 迁移到 WPF。原因是目标 Windows 环境中的空白 WinUI 程序也会在原生 XAML/Input 组件中崩溃，而 WPF 探针能在同一登录桌面会话正常驻留。模型、ViewModel、服务接口和草稿安全边界保持不变。
+客户端不再维护本地“当前项目”、内置文案、情绪猜测音乐或伪草稿预览。相关旧模型、服务、ViewModel 和适配器已删除，避免业务事实分叉。
 
-## 素材与文案
+## 选择连接式客户端的原因
 
-素材导入通过 `IAssetImportService` 注入工作台 ViewModel；`LocalAssetImportService` 只读扫描文件，跳过重解析点目录并统计无权访问的目录，`MediaCategoryClassifier` 提供可人工覆盖的规则建议。WPF 的 `OpenFolderDialog` 只保留在窗口代码后置中。
+- `.24` 的运行中 Web 模块是用户指定的产品权威，已经包含六个页面和完整业务规则。
+- 产品、标签、内容、音色、音乐、草稿和模型配置必须共享同一数据库。
+- 在 WPF 中重新实现接口会造成双重 UI 和持续漂移；WebView2 可以在保持 Windows 应用入口的同时直接复用当前实现。
+- 浏览器文件上传在 WebView2 中调用 Windows 文件选择器，满足桌面多文件导入。
 
-文案通过 `IContentLibraryService` 注入；`LocalContentLibraryService` 提供本地片段和内存筛选。检索、采用、自定义录入、排序、删除、重复提示、撤销与进度均由 ViewModel 维护，项目脚本通过 `IProjectStore` 持久化。
+## 运行边界
 
-## 背景音乐
+- WPF 使用 .NET 10，发布为 `win-x64` self-contained；.NET Desktop Runtime 随应用携带。
+- WebView2 SDK 锁定稳定版 `1.0.4191.47`；目标 Windows 机器 `.29` 已安装 Evergreen WebView2 Runtime `153.0.4234.32`。
+- 会话数据存放在 `%LocalAppData%\JianyingVideoAssistant\WebView2`。
+- 默认 URL 为 `http://192.168.31.24:8000/workbench/`；合法的 HTTP/HTTPS `JVA_WORKBENCH_URL` 可覆盖，非法值回退默认地址。
+- Windows 11 继续尝试 DWM 系统背景，Windows 10 或不支持时使用主题实色；Web 内容区由权威前端自身控制颜色。
 
-`LocalMusicLibraryService` 过滤支持的本地音频并根据文件名/目录名建议情绪。`WpfMusicPreviewService` 是唯一依赖 WPF 媒体 API 的服务实现，ViewModel 只依赖 `IMusicPreviewService`。应用音乐只记录原路径，试听不会修改或复制源文件。
+## 故障处理
 
-## 草稿安全边界
-
-所有输出通过 `IDraftExporter` 及适配器层完成。当前 `JianyingDraftPreviewAdapter` 的工作根目录由组合根固定到 `%LocalAppData%\JianyingVideoAssistant\DraftPreviews`，每次生成独立目录，只包含 `project-preview.json` 和说明文件。
-
-当前输出明确不是剪映原生草稿。没有完成格式版本探测、真实样本回归和副本打开测试前，禁止写入剪映用户草稿目录，也禁止生成看似真实的 `draft_content.json`。
-
-## 毛玻璃与回退
-
-- Windows 11 尝试通过 DWM 系统背景属性呈现窗口材质。
-- 内容面板和卡片使用高对比度半透明表面。
-- DWM API 不可用或透明效果关闭时，应用资源提供深色实色/半透明回退，不影响功能。
+- 导航失败：显示连接失败、重试、在浏览器打开。
+- WebView2 运行时缺失：显示安装提示并保留浏览器入口。
+- WebView2 显示进程崩溃：保留窗口并允许重新载入。
+- 外域新窗口：交给系统默认浏览器，避免未知页面接管客户端窗口。
+- 登录凭据不由 WPF 存储；Web 会话由 WebView2 用户数据目录持久化。
 
 ## 部署
 
-首版发布 x64 自包含目录，携带 .NET 10 Desktop Runtime，目标机无需安装 .NET。发布目录必须整体分发；当前不启用单文件合并和裁剪。MSIX、签名和自动更新留待正式发布阶段。
+发布目录必须整体复制，不能只复制 exe。桌面快捷方式应指向当前版本目录中的 `JianyingVideoAssistant.exe`。发布前验证服务健康、目标机 WebView2 Runtime、Release 构建、入口配置测试、实际加载、登录和至少一个主要页面导航。
