@@ -1,41 +1,46 @@
 # 工程架构
 
-## 当前形态
+## 独立客户端
 
 ```text
-WPF 自包含桌面外壳
-├── MainWindow：连接状态、重试、浏览器替代入口
-├── WebView2：承载 192.168.31.24 的权威工作台
-└── WorkbenchEndpoint：默认地址与部署覆盖
-        ↓ HTTP
-FastAPI / PostgreSQL / 媒体服务 / AI 模型配置（192.168.31.24）
+JianyingVideoAssistant.exe（WPF / .NET 10 自包含）
+├── 启动与监管 JianyingVideoAssistant.Server.exe
+├── 仅连接 127.0.0.1 的随机端口
+├── 固定版 WebView2 显示 React 工作台
+└── 打开本机数据目录、处理刷新与启动错误
+        ↓ loopback HTTP
+本地 FastAPI 服务
+├── SQLite：账号、产品、标签、内容、音乐、模型配置、草稿记录
+├── FFmpeg / FFprobe：媒体校验、时长与音频处理
+├── 本地文件工作区
+└── 剪映草稿适配器
 ```
 
-客户端不再维护本地“当前项目”、内置文案、情绪猜测音乐或伪草稿预览。相关旧模型、服务、ViewModel 和适配器已删除，避免业务事实分叉。
+客户端不再连接 `192.168.31.24`。`.24` 继续作为 Web 产品的独立部署实例，用于功能对照，不是客户端运行依赖；两端数据互不自动同步。
 
-## 选择连接式客户端的原因
+## 启动与关闭
 
-- `.24` 的运行中 Web 模块是用户指定的产品权威，已经包含六个页面和完整业务规则。
-- 产品、标签、内容、音色、音乐、草稿和模型配置必须共享同一数据库。
-- 在 WPF 中重新实现接口会造成双重 UI 和持续漂移；WebView2 可以在保持 Windows 应用入口的同时直接复用当前实现。
-- 浏览器文件上传在 WebView2 中调用 Windows 文件选择器，满足桌面多文件导入。
+1. WPF 验证安装目录中的本地服务和前端资源。
+2. 在回环地址选择随机空闲端口并启动本地服务。
+3. 服务使用 `%LocalAppData%\JianyingVideoAssistant\Data`，全新数据库直接创建当前完整结构并标记迁移版本。
+4. 健康检查成功后初始化随包固定版 WebView2 并导航到本机工作台。
+5. 主窗口关闭时终止本地服务进程树；业务数据保留。
 
-## 运行边界
+本地服务不监听局域网地址。首次使用仍需创建本机管理员密码，账号和会话只属于这台电脑。
 
-- WPF 使用 .NET 10，发布为 `win-x64` self-contained；.NET Desktop Runtime 随应用携带。
-- WebView2 SDK 锁定稳定版 `1.0.4191.47`；目标 Windows 机器 `.29` 已安装 Evergreen WebView2 Runtime `153.0.4234.32`。
-- 会话数据存放在 `%LocalAppData%\JianyingVideoAssistant\WebView2`。
-- 默认 URL 为 `http://192.168.31.24:8000/workbench/`；合法的 HTTP/HTTPS `JVA_WORKBENCH_URL` 可覆盖，非法值回退默认地址。
-- Windows 11 继续尝试 DWM 系统背景，Windows 10 或不支持时使用主题实色；Web 内容区由权威前端自身控制颜色。
+## 打包边界
 
-## 故障处理
+- .NET 10 Desktop：`win-x64 --self-contained`。
+- Python 3.12 服务：PyInstaller one-directory，运行机不需要 Python。
+- WebView2：固定版 `153.0.4234.32` 随应用发布，不依赖系统 Evergreen Runtime。
+- FFmpeg/FFprobe：随本地服务发布，不依赖系统 PATH。
+- React 静态资源：使用 `VITE_DESKTOP_MODE=1` 构建，只展示剪映视频助手六个入口。
+- WebView2 用户数据：`%LocalAppData%\JianyingVideoAssistant\WebView2`。
 
-- 导航失败：显示连接失败、重试、在浏览器打开。
-- WebView2 运行时缺失：显示安装提示并保留浏览器入口。
-- WebView2 显示进程崩溃：保留窗口并允许重新载入。
-- 外域新窗口：交给系统默认浏览器，避免未知页面接管客户端窗口。
-- 登录凭据不由 WPF 存储；Web 会话由 WebView2 用户数据目录持久化。
+## 安全与故障处理
 
-## 部署
-
-发布目录必须整体复制，不能只复制 exe。桌面快捷方式应指向当前版本目录中的 `JianyingVideoAssistant.exe`。发布前验证服务健康、目标机 WebView2 Runtime、Release 构建、入口配置测试、实际加载、登录和至少一个主要页面导航。
+- API 只绑定 `127.0.0.1`，随机端口不作为持久配置。
+- API Key 保存在本机 SQLite，返回界面时掩码处理；日志禁止记录明文 Key。
+- 本地服务缺失、启动退出、超时或 WebView2 启动失败时，桌面窗口显示原因和重试入口。
+- 服务启动异常写入本机日志；界面提供数据目录入口。
+- 草稿生成仍通过唯一适配器，使用新目录且永不覆盖已有草稿。

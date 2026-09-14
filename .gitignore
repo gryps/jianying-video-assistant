@@ -17,3 +17,9 @@ exports/
 *.mp3
 *.wav
 *.aac
+src/LocalWorkbench/desktop-dist/
+src/LocalWorkbench/build/
+src/LocalWorkbench/.venv-desktop/
+src/LocalWorkbench/frontend/node_modules/
+src/LocalWorkbench/frontend/dist/
+src/LocalWorkbench/ops-workbench-runtime/

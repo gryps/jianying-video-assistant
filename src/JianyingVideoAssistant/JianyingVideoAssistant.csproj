@@ -14,6 +14,16 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+    <PackageReference Include="WebView2.Runtime.X64" Version="153.0.4234.32" />
+    <PackageReference Include="WebView2.Runtime.X64.Core" Version="153.0.4234.32" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\LocalWorkbench\desktop-dist\**\*">
+      <Link>LocalWorkbench\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
