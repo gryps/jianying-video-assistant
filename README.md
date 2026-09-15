@@ -9,7 +9,7 @@
 - 内容文库：AI 五候选文案迭代、597 音色、旁白与字幕、音频转文案。
 - 背景音乐：本地/链接入库、试听、重命名、多标签和引用保护。
 - 剪映草稿：组合文案、旁白字幕和音乐生成无视频轨的真实草稿。
-- 模型配置：文案生成、音频转文案和字幕配音分别配置，API Key 只存本机并脱敏显示。
+- 模型配置：文案生成、音频转文案和字幕配音分别配置；桌面端 API Key 使用 Windows 当前用户 DPAPI 加密，并脱敏显示。
 
 模型生成和语音服务在用户主动配置供应商接口后才访问该接口；它们不是客户端启动依赖。
 
@@ -26,8 +26,7 @@
 前端需以桌面模式构建到 `src/LocalWorkbench/desktop-dist/static-workbench`，再生成本地服务：
 
 ```powershell
-$env:VITE_DESKTOP_MODE = "1"
-npm --prefix src/LocalWorkbench/frontend run build
+npm --prefix src/LocalWorkbench/frontend run build:desktop
 ./scripts/build-local-workbench.ps1
 
 dotnet restore JianyingVideoAssistant.sln
@@ -37,6 +36,10 @@ dotnet publish src/JianyingVideoAssistant/JianyingVideoAssistant.csproj `
 ```
 
 发布目录必须整体分发，不能只复制主程序 exe。
+
+桌面端用户数据不进入发布目录。模型 API Key 加密后位于
+`%LocalAppData%\JianyingVideoAssistant\Data`，复制发布目录或 ZIP 不会携带 Key；
+复制数据目录到另一台电脑或另一个 Windows 用户也无法解密，换机时需重新填写。
 
 ## 文档
 

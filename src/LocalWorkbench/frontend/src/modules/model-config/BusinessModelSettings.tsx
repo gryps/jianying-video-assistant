@@ -57,6 +57,7 @@ export function BusinessModelSettings({ onError, onNotice }: { onError: (value: 
       <div><b>{title}</b><span>{description}</span></div>
       <label>百炼兼容接口<input value={profile.base_url} onChange={event => update(stage, { base_url: event.target.value })} placeholder="https://.../compatible-mode/v1" /></label>
       <label>API Key<input type="password" value={profile.api_key} onChange={event => update(stage, { api_key: event.target.value })} placeholder={profile.api_key_mask || "sk-..."} /></label>
+      {profile.secret_unavailable && <small className="human-error">此 Key 来自其他电脑或 Windows 用户，当前无法解密。请重新填写并保存。</small>}
       <label>模型类别{listed.length ? <select value={profile.model} onChange={event => update(stage, { model: event.target.value })}><option value="">请选择模型类别</option>{options.map(value => <option key={value} value={value}>{value}</option>)}</select> : <input value={profile.model} onChange={event => update(stage, { model: event.target.value })} placeholder={stage === "speech_recognition" ? "请填写非实时 qwen3-asr-flash" : stage === "image_analysis" ? "请选择支持图片输入的视觉模型，例如 qwen-vl" : stage === "image_generation" ? "请选择支持参考图生图的模型" : stage === "ai_video_generation" ? "请填写文生视频或图生视频模型" : "读取列表后可下拉选择，也可手动填写"} />}</label>
       <small>协议：{profile.protocol || "未声明"}；适配器：{profile.provider_type || "openai_compatible"}</small>
       {!!profile.capabilities?.length && <div className="business-model-capabilities">{profile.capabilities.map(value => <span key={value}>{value}</span>)}</div>}
@@ -72,7 +73,7 @@ export function BusinessModelSettings({ onError, onNotice }: { onError: (value: 
   }
   if (loading) return <section className="human-page"><div className="human-empty"><LoaderCircle className="spin" />正在加载</div></section>;
   return <section className="human-page business-model-page">
-    <div className="human-note"><Sparkles />文案、识别和配音分别保存配置；API Key 仅保存在本机数据库，界面和日志始终脱敏。</div>
+    <div className="human-note"><Sparkles />文案、识别和配音分别保存配置；客户端中的 API Key 由 Windows 当前用户加密，界面和日志始终脱敏。</div>
     <div className="business-model-stack">
       {card("copywriting", "分析语言与受众并生成 5 条文案，也负责字幕文案生成")}
       {!desktop && card("image_analysis", "分析产品组原图，生成各类 AI 图可人工确认的提示词")}

@@ -22,6 +22,7 @@ export type ModelProfile = {
   api_key: string;
   has_api_key: boolean;
   api_key_mask: string;
+  secret_unavailable: boolean;
 };
 
 export type ModelProfilesResponse = {

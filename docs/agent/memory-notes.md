@@ -48,3 +48,6 @@
 - `.24` 模型配置缺失的根因是后端与页面仍在，但导航和页面挂载丢失；已恢复导航，且保留 `.24` 自己的 AI 视频入口。
 - 素材主数据新增“产品分类 → 产品名称”层级；产品名称使用服务端关键词搜索、分类筛选和每页 20 条分页。标签分类继续作为独立的跨产品素材标签体系。
 - 前端改为 Fluent 浅色中性层级、Microsoft Blue 单一强调色和六个直接入口；客户端不显示 `.24` 的额外 AI 视频模块。主要/次要文字和主按钮对比度通过 WCAG AA。
+- 桌面客户端模型 API Key 改用 Windows DPAPI CurrentUser 加密存储；复制安装目录不包含用户数据，复制 SQLite 到其他电脑或 Windows 用户也无法解密，换机需重新填写。
+- Windows 构建/运行机地址由 DHCP 的 `.29` 变为 `.21`，现已把 `Ethernet0` 固定为 `192.168.31.21/24`，网关 `192.168.31.1`，DNS `221.12.33.227`、`223.5.5.5`。
+- V10 安全独立版已发布到 `%LocalAppData%\JianyingVideoAssistant\App-V10-SecureStandalone`，桌面 ZIP 为 `JianyingVideoAssistant-V10-SecureStandalone.zip`（418,761,459 字节，SHA-256 `E8CB853574C50E432D7DE145182CE99FA9A9175187148DD89558A8C999961DD4`）。Windows DPAPI 16 项测试、Release 构建、打包服务密钥落盘检查、结构冒烟和登录页实机截图通过；桌面上的既有助手快捷方式均指向 V10。

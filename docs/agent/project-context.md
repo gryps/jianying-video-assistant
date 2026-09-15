@@ -21,6 +21,7 @@
 - WebView2 SDK `1.0.4191.47`；固定运行时 `153.0.4234.32` 随包发布。
 - FFmpeg/FFprobe 和 .NET 10 均随包发布。
 - 模型供应商接口是用户配置后调用的业务集成，不是启动依赖。
+- 桌面端模型 API Key 使用 Windows DPAPI CurrentUser 加密后写入 SQLite；发布目录不携带用户数据库。密钥不能跨电脑或跨 Windows 用户解密，换机时需重新填写。
 
 ## 产品分类逻辑
 
@@ -33,9 +34,10 @@
 
 - 主源码：本 Git 仓库。
 - Web 对照与部署：`work-ubuntu:/home/gryps/apps/ecommerce-ops-platform/ops-workbench`。
-- Windows 构建/运行机：`gryps@192.168.31.29`；不得部署到 `.31`。
+- Windows 构建/运行机：`gryps@192.168.31.21`（网卡手动地址）；不得部署到 `.31`。
 - Windows 用户级 .NET SDK：`C:\Users\gryps\.dotnet\dotnet.exe`，版本 10.0.401。
-- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V9-Standalone`。
+- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V10-SecureStandalone`。
+- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V10-SecureStandalone.zip`；包内不含用户数据。
 
 ## 发布前验证
 

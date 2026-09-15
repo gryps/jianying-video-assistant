@@ -8,6 +8,7 @@ import urllib.request
 from typing import Any
 
 from app.core.database import session_scope
+from app.core.secret_protection import SecretProtectionError, is_protected_secret, protect_secret, unprotect_secret
 from app.core.security import utc_now
 from app.domain.models import WorkbenchSetting
 from app.models import ModelProfile
@@ -95,11 +96,22 @@ def _stored_profiles() -> dict[str, dict[str, Any]]:
     with session_scope() as session:
         setting = session.get(WorkbenchSetting, PROFILE_STORAGE_KEY)
         rows = (setting.value or {}).get("profiles", []) if setting else []
-        return {
+        stored = {
             str(item.get("stage") or ""): dict(item)
             for item in rows
             if isinstance(item, dict) and item.get("stage")
         }
+        migrated = False
+        for item in stored.values():
+            current = str(item.get("api_key") or "")
+            protected = protect_secret(current)
+            if protected != current:
+                item["api_key"] = protected
+                migrated = True
+        if migrated and setting is not None:
+            setting.value = {**(setting.value or {}), "profiles": list(stored.values())}
+            setting.updated_at = utc_now()
+        return stored
 
 
 def load_model_profiles(include_api_key: bool = False) -> list[ModelProfile]:
@@ -107,7 +119,13 @@ def load_model_profiles(include_api_key: bool = False) -> list[ModelProfile]:
     profiles: list[ModelProfile] = []
     for default in default_profiles():
         current = stored.get(default.stage, {})
-        api_key = str(current.get("api_key") or "")
+        stored_api_key = str(current.get("api_key") or "")
+        secret_unavailable = False
+        try:
+            api_key = unprotect_secret(stored_api_key)
+        except SecretProtectionError:
+            api_key = ""
+            secret_unavailable = True
         meta = PROFILE_STAGE_META[default.stage]
         profiles.append(
             ModelProfile(
@@ -123,6 +141,7 @@ def load_model_profiles(include_api_key: bool = False) -> list[ModelProfile]:
                 api_key=api_key if include_api_key else "",
                 has_api_key=bool(api_key),
                 api_key_mask=mask_api_key(api_key),
+                secret_unavailable=secret_unavailable,
             )
         )
     return profiles
@@ -148,7 +167,11 @@ def save_model_profiles(profiles: list[ModelProfile]) -> None:
                 "model": profile.model.strip(),
                 "temperature": profile.temperature,
                 "proxy_url": profile.proxy_url.strip(),
-                "api_key": profile.api_key.strip() or str(old.get("api_key") or ""),
+                "api_key": protect_secret(profile.api_key) if profile.api_key.strip() else (
+                    str(old.get("api_key") or "")
+                    if is_protected_secret(str(old.get("api_key") or ""))
+                    else protect_secret(str(old.get("api_key") or ""))
+                ),
             }
         )
     with session_scope() as session:

@@ -16,6 +16,7 @@ class ModelProfile(BaseModel):
     api_key: str = ""
     has_api_key: bool = False
     api_key_mask: str = ""
+    secret_unavailable: bool = False
 
 
 class ModelProfilesResponse(BaseModel):

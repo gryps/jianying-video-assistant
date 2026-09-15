@@ -1,4 +1,5 @@
 from tests.current_workflow_helpers import *
+from app.domain.models import WorkbenchSetting
 
 
 def test_qwen_audio_voice_preview_is_persisted_and_reused(workbench_database, monkeypatch):
@@ -355,6 +356,33 @@ def test_model_profiles_only_contain_current_bailian_stages(workbench_database):
     assert masked[0].api_key == ""
     assert masked[0].has_api_key is True
     assert masked[0].api_key_mask.endswith("-key")
+
+
+def test_desktop_model_profile_storage_uses_secret_protector(workbench_database, monkeypatch):
+    import app.ai as ai_module
+
+    monkeypatch.setattr(
+        ai_module,
+        "protect_secret",
+        lambda value: value.strip() if value.startswith("protected:") else f"protected:{value.strip()}",
+    )
+    monkeypatch.setattr(
+        ai_module,
+        "unprotect_secret",
+        lambda value: value.removeprefix("protected:"),
+    )
+    monkeypatch.setattr(ai_module, "is_protected_secret", lambda value: value.startswith("protected:"))
+    profiles = load_model_profiles(include_api_key=True)
+    profiles[0].api_key = "sk-not-plaintext-at-rest"
+    profiles[0].model = "qwen-test"
+    save_model_profiles(profiles)
+
+    with session_scope() as session:
+        stored = session.get(WorkbenchSetting, "model_profiles")
+        assert stored is not None
+        raw_key = stored.value["profiles"][0]["api_key"]
+    assert raw_key == "protected:sk-not-plaintext-at-rest"
+    assert load_model_profiles(include_api_key=True)[0].api_key == "sk-not-plaintext-at-rest"
 
 
 def test_model_profile_can_be_saved_independently(workbench_database):
