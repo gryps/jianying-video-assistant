@@ -8,9 +8,9 @@
 
 ## 产品基线
 
-- 客户端固定入口：生产总览、素材归类、内容文库、背景音乐、剪映草稿、模型配置。
+- 客户端固定入口：素材归类、内容文库、背景音乐、剪映草稿、模型配置；启动后直接进入素材归类。
 - `192.168.31.24:8000/workbench/` 是 Web 部署对照，不是客户端运行依赖。
-- `.24` 的模型配置导航已恢复；Web 端保留其 AI 视频模块，桌面端不显示该额外模块。
+- `.24` 的模型配置导航已恢复；Web 端保留其 AI 视频模块，桌面端不注册入口、不渲染页面，也不显示 AI 视频相关模型卡片。
 - 客户端与 `.24` 各自使用独立数据库，不承诺自动同步。
 
 ## 当前技术决策
@@ -36,8 +36,8 @@
 - Web 对照与部署：`work-ubuntu:/home/gryps/apps/ecommerce-ops-platform/ops-workbench`。
 - Windows 构建/运行机：`gryps@192.168.31.21`（网卡手动地址）；不得部署到 `.31`。
 - Windows 用户级 .NET SDK：`C:\Users\gryps\.dotnet\dotnet.exe`，版本 10.0.401。
-- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V10-SecureStandalone`。
-- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V10-SecureStandalone.zip`；包内不含用户数据。
+- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V11-BlueUI`。
+- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V11-BlueUI.zip`；包内不含用户数据。
 
 ## 发布前验证
 
@@ -46,4 +46,4 @@
 3. 本地服务打包后健康检查，确认 FFmpeg/FFprobe 可用。
 4. Windows Release 构建、核心冒烟测试、自包含发布。
 5. 登录桌面会话启动，确认主进程、本地服务和随包 WebView2 均来自发布目录。
-6. 实际截图检查初始化页及登录后的六个页面、长产品名称和分页状态。
+6. 实际截图检查初始化页及登录后的五个页面、长产品名称和分页状态。

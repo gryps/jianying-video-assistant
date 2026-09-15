@@ -14,6 +14,7 @@ export function clearToken(): void {
 
 function apiErrorMessage(payload: unknown, status: number): string {
   const detail = (payload as { detail?: unknown } | null)?.detail;
+  if (detail === "Not Found") return "当前功能不可用，请重新启动客户端后再试";
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail)) {
     const messages = detail.map((item) => {

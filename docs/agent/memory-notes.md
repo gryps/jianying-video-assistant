@@ -51,3 +51,6 @@
 - 桌面客户端模型 API Key 改用 Windows DPAPI CurrentUser 加密存储；复制安装目录不包含用户数据，复制 SQLite 到其他电脑或 Windows 用户也无法解密，换机需重新填写。
 - Windows 构建/运行机地址由 DHCP 的 `.29` 变为 `.21`，现已把 `Ethernet0` 固定为 `192.168.31.21/24`，网关 `192.168.31.1`，DNS `221.12.33.227`、`223.5.5.5`。
 - V10 安全独立版已发布到 `%LocalAppData%\JianyingVideoAssistant\App-V10-SecureStandalone`，桌面 ZIP 为 `JianyingVideoAssistant-V10-SecureStandalone.zip`（418,761,459 字节，SHA-256 `E8CB853574C50E432D7DE145182CE99FA9A9175187148DD89558A8C999961DD4`）。Windows DPAPI 16 项测试、Release 构建、打包服务密钥落盘检查、结构冒烟和登录页实机截图通过；桌面上的既有助手快捷方式均指向 V10。
+- V11 修正桌面构建标志缺失：升级后会清理无效的 AI 视频导航状态，客户端不再显示 AI 视频、生产总览和 AI 视频相关模型卡；启动页改为素材归类，通用 404 不再显示英文 `Not Found`。
+- V11 菜单改用通过 WCAG AA 的 Microsoft Blue 状态色；产品/标签管理改为纵向区块，标签分类和名称合并为同一卡片且分类可直接筛选标签；旁白页限制横向溢出，背景音乐两个导入按钮底部对齐。
+- 用户指定的人物云服务 PNG 已用作 EXE、窗口标题栏和快捷方式图标。V11 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V11-BlueUI`；桌面包 `JianyingVideoAssistant-V11-BlueUI.zip` 为 495,027,483 字节，SHA-256 `773DBA0E0C51DFC2493BC1FD76651F50ABF5C88316FB452DA8AC6769AA19419F`，Windows 自包含发布、登录会话启动和实机截图均通过。

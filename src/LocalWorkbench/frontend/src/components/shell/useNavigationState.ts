@@ -9,11 +9,8 @@ import {
   type ModuleNavKey,
 } from "./moduleNavigation";
 
-const validModules: PlatformModule[] = [
-  "aiVideo",
-  "video",
-  "models",
-];
+const desktop = import.meta.env.VITE_DESKTOP_MODE === "1";
+const validModules: PlatformModule[] = desktop ? ["video", "models"] : ["aiVideo", "video", "models"];
 
 const storedPlatformModule = (): PlatformModule => {
   const stored = localStorage.getItem("platform_module");
@@ -36,7 +33,7 @@ const storedExpandedModules = (module: PlatformModule): ModuleNavKey[] => {
 
 export function useNavigationState() {
   const [module, setModule] = useState<PlatformModule>(storedPlatformModule);
-  const [view, setView] = useState<View>("flow");
+  const [view, setView] = useState<View>(desktop ? "materials" : "flow");
   const [expandedModules, setExpandedModules] = useState<ModuleNavKey[]>(() => storedExpandedModules(module));
   const [selectedSecondaryOwner, setSelectedSecondaryOwner] = useState<ModuleNavKey | "">("");
 

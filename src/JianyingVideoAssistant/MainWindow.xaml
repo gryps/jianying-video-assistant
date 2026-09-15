@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="剪映视频助手"
+        Icon="Assets/AppIcon.png"
         Width="1240" Height="860" MinWidth="1040" MinHeight="700"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource WindowBrush}"
@@ -16,7 +17,7 @@
         <Border Background="{DynamicResource RailBrush}" BorderBrush="{DynamicResource CardStrokeBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="14,0,10,0">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <Border Width="25" Height="25" CornerRadius="6" Background="{DynamicResource AccentBrush}" VerticalAlignment="Center"><TextBlock Text="剪" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                <Image Width="25" Height="25" Source="Assets/AppIcon.png" Stretch="Uniform" VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Text="剪映视频助手" Margin="9,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center"><Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="{DynamicResource WarningBrush}" /><TextBlock x:Name="StatusText" Text="正在启动本地工作台" Margin="6,0,0,0" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" /><ProgressBar x:Name="StartupProgress" Width="64" Height="3" Margin="10,0,0,0" IsIndeterminate="True" /></StackPanel>
                 <Button Grid.Column="3" Content="刷新" Click="OnReloadClick" Padding="12,4" MinHeight="29" />

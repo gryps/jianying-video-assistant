@@ -28,7 +28,7 @@ export function SidebarNav({ sidebarCollapsed, module, view, expandedModules, se
     <div className="platform-module-switch" aria-label="主导航">
       <section className="platform-module-group">
         <div className="platform-module-group-title">视频制作</div>
-        <nav className="platform-direct-nav">{videoNav.map(([key, label, Icon]) => <button key={key} title={sidebarCollapsed ? label : undefined} className={module === "video" && view === key ? "active" : ""} onClick={() => onSelectVideoView("video", key)}><Icon /><span>{label}</span></button>)}</nav>
+        <nav className="platform-direct-nav">{videoNav.filter(([key]) => key !== "flow").map(([key, label, Icon]) => <button key={key} title={sidebarCollapsed ? label : undefined} className={module === "video" && view === key ? "active" : ""} onClick={() => onSelectVideoView("video", key)}><Icon /><span>{label}</span></button>)}</nav>
       </section>
       <section className="platform-module-group">
         <div className="platform-module-group-title">应用设置</div>

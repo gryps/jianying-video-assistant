@@ -15,6 +15,7 @@ foreach ($linkFile in Get-ChildItem $desktop -Filter "*.lnk") {
     if ([System.IO.Path]::GetFileName($link.TargetPath) -eq "JianyingVideoAssistant.exe") {
         $link.TargetPath = $executable
         $link.WorkingDirectory = $ApplicationDirectory
+        $link.IconLocation = "$executable,0"
         $link.Save()
         $updated++
     }
@@ -23,6 +24,7 @@ if ($updated -eq 0) {
     $link = $shell.CreateShortcut((Join-Path $desktop "JianyingVideoAssistant.lnk"))
     $link.TargetPath = $executable
     $link.WorkingDirectory = $ApplicationDirectory
+    $link.IconLocation = "$executable,0"
     $link.Save()
 }
 
