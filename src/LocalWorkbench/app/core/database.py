@@ -39,7 +39,11 @@ def get_engine() -> Engine:
             return _engine
         if _engine is not None:
             _engine.dispose()
-        connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
+        connect_args = (
+            {"check_same_thread": False, "timeout": 30}
+            if url.startswith("sqlite")
+            else {}
+        )
         _engine = create_engine(url, pool_pre_ping=True, connect_args=connect_args)
         if url.startswith("sqlite"):
             event.listen(_engine, "connect", _enable_sqlite_foreign_keys)
@@ -52,6 +56,7 @@ def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record) -> None:
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA busy_timeout=30000")
     cursor.close()
 
 

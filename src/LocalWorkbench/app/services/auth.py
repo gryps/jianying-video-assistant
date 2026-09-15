@@ -147,6 +147,9 @@ def require_admin(request: Request) -> AdminUser:
         user = session.get(AdminUser, auth_session.user_id)
         if user is None or not user.is_active:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="账号不可用")
-        auth_session.last_seen_at = utc_now()
+        # Authentication is on the hot path for every API request. Updating
+        # last_seen_at here turns every read into a SQLite write and causes
+        # avoidable writer contention when the UI loads several panels in
+        # parallel. Sessions have a fixed expiry, so validation stays read-only.
         session.expunge(user)
         return user

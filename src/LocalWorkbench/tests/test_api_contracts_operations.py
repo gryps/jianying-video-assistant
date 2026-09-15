@@ -65,6 +65,39 @@ def test_tracked_operation_reports_progress_and_rejects_duplicate():
     assert result["detail"] == "已生成 5 条候选"
 
 
+def test_material_classification_converts_unexpected_failure_to_readable_conflict(
+    monkeypatch,
+):
+    operation_id = uuid.uuid4().hex
+    monkeypatch.setattr(
+        "app.api.v1.human_workflow_routes.materials.classify_and_move_originals",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(Exception("database is locked")),
+    )
+    payload = MaterialClassificationPayload(
+        product_id=3,
+        source_dir="C:/素材",
+        items=[
+            MaterialClassificationItemPayload(
+                source_path="C:/素材/视频.mp4",
+                tag_ids=["tag-id"],
+            )
+        ],
+    )
+
+    with pytest.raises(HTTPException) as error:
+        confirm_material_classification(
+            payload,
+            admin=admin(),
+            x_operation_id=operation_id,
+        )
+
+    assert error.value.status_code == 409
+    assert "database is locked" in error.value.detail
+    status = operation_status(operation_id, _admin=admin())
+    assert status["status"] == "failed"
+    assert status["detail"] == "database is locked"
+
+
 def test_browser_video_upload_stages_selected_files(workbench_database, monkeypatch):
     monkeypatch.setattr(settings, "runtime_dir", workbench_database / "runtime")
     result = upload_source_videos(

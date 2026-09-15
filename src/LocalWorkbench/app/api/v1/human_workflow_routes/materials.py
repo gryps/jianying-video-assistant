@@ -1,4 +1,8 @@
+import logging
+
 from .human_common import *
+
+LOGGER = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -16,7 +20,8 @@ def confirm_material_classification(payload: MaterialClassificationPayload, admi
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception as exc:
         finish_operation(operation_id, 'failed', str(exc))
-        raise
+        LOGGER.exception('Material classification failed unexpectedly')
+        raise HTTPException(status_code=409, detail=f'归类失败：{exc}') from exc
 
 @router.get('/classified-materials')
 def list_classified_materials(product_id: int | None=None, _admin: AdminUser=Depends(require_admin)) -> list[dict[str, Any]]:

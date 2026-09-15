@@ -70,3 +70,6 @@
 - 用户指出图标失真。应用 ICO 从单一 256px 图层改为保留原图比例的 16/20/24/32/40/48/64/128/256px 九层资源，WPF 窗口改为直接使用 ICO，V13 新路径也避免复用旧快捷方式图标缓存。
 - `C:\Users\gryps\source` 最终只保留 272,976,330 字节当前源码镜像，C 盘剩余约 12.9 GB；旧镜像、探针与所有本轮构建缓存均已清理。桌面只保留 V13 ZIP，V11/V12 ZIP 已删除，已发布程序和用户数据未删除。
 - V13 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V13-OriginalFolder` 并已运行，桌面快捷方式已切换；最新包 `JianyingVideoAssistant-V13-OriginalFolder.zip` 为 420,233,453 字节，SHA-256 `5AACC8EC089635FDF56EF85820D766DF392FE256E29199C956D1AF460D890477`。
+- 用户实测 V13 确认归类时遇到 HTTP 500。隔离 Windows 数据库、真实 MP4、中文产品/标签与原目录绝对路径复现均成功，定位到认证依赖会在每个并行 API 请求中更新 `last_seen_at`，令所有读取请求变成 SQLite 写入并放大写锁冲突。
+- V14 将认证校验改为只读，SQLite 连接与 `busy_timeout` 统一提高到 30 秒；归类的意外异常改为 409 可读原因并写入 `Data/logs/server.log`，不再只显示无信息的 500。Windows 素材与接口回归 17 项通过，隔离数据的打包后端真实视频归类通过。
+- V14 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V14-ClassificationFix`，桌面快捷方式已切换并在交互会话启动；桌面包 `JianyingVideoAssistant-V14-ClassificationFix.zip` 为 420,497,565 字节，SHA-256 `6FC05DFFF43042C57C71CCBAB3510202470E07FCC030C5B615A0EAE7610CD132`。

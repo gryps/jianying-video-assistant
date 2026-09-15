@@ -17,7 +17,22 @@ def main() -> None:
     runtime = Path(os.environ.get("PVA_RUNTIME_DIR", Path.home() / ".jianying-video-assistant"))
     log_dir = runtime / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
-    logging.basicConfig(filename=log_dir / "server.log", level=logging.WARNING, encoding="utf-8")
+    log_path = log_dir / "server.log"
+    logging.basicConfig(
+        filename=log_path,
+        level=logging.WARNING,
+        encoding="utf-8",
+        force=True,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+    # Uvicorn may create its loggers before main() configures logging. Attach
+    # the same file explicitly so request tracebacks are never lost.
+    for logger_name in ("uvicorn", "uvicorn.error"):
+        logger = logging.getLogger(logger_name)
+        if not any(isinstance(handler, logging.FileHandler) and handler.baseFilename == str(log_path) for handler in logger.handlers):
+            handler = logging.FileHandler(log_path, encoding="utf-8")
+            handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+            logger.addHandler(handler)
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning", access_log=False, log_config=None)
 
 

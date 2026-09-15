@@ -28,6 +28,7 @@ from app.api.v1.human_workflow import (
     continue_copy_generation,
     create_product_tag,
     create_tag_category,
+    confirm_material_classification,
     delete_copy_iteration,
     delete_human_product,
     delete_library_copy,
@@ -45,6 +46,8 @@ from app.api.v1.human_workflow import (
     update_library_copy,
     upload_source_videos,
     VoicePreviewPayload,
+    MaterialClassificationPayload,
+    MaterialClassificationItemPayload,
 )
 from app.api.v1.ai_video_production import (
     create_director_shots,
