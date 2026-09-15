@@ -40,3 +40,26 @@ def upload_source_videos(
         shutil.rmtree(staging_dir, ignore_errors=True)
         raise
     return {'path': str(staging_dir), 'videos': uploaded}
+
+
+@router.delete('/source-videos')
+def delete_source_video(
+    path: str,
+    _admin: AdminUser = Depends(require_admin),
+) -> dict[str, bool]:
+    staging_root = (settings.runtime_dir / 'video-imports').resolve()
+    target = Path(path).expanduser().resolve()
+    try:
+        relative = target.relative_to(staging_root)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail='只能删除尚未归类的暂存视频') from exc
+    if len(relative.parts) != 2 or target.suffix.casefold() not in VIDEO_EXTENSIONS:
+        raise HTTPException(status_code=400, detail='待删除视频路径无效')
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail='待删除视频不存在')
+    target.unlink()
+    try:
+        target.parent.rmdir()
+    except OSError:
+        pass
+    return {'deleted': True}

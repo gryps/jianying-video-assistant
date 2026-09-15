@@ -7,6 +7,7 @@ def test_openapi_exposes_only_current_workflow():
     paths = set(app.openapi()["paths"])
     assert "/api/v1/human/material-classifications" in paths
     assert "/api/v1/human/source-videos/upload" in paths
+    assert "delete" in app.openapi()["paths"]["/api/v1/human/source-videos"]
     assert "/api/v1/human/jianying-drafts" in paths
     assert "/api/v1/music-resources/upload" in paths
     assert "/api/v1/model-profiles" in paths
@@ -91,3 +92,29 @@ def test_browser_video_upload_rejects_non_video(workbench_database, monkeypatch)
 
     assert error.value.status_code == 400
     assert not list((workbench_database / "runtime" / "video-imports").glob("*"))
+
+
+def test_browser_video_delete_removes_only_selected_staged_copy(workbench_database, monkeypatch):
+    monkeypatch.setattr(settings, "runtime_dir", workbench_database / "runtime")
+    result = upload_source_videos(
+        files=[
+            UploadFile(filename="保留.mp4", file=io.BytesIO(b"keep")),
+            UploadFile(filename="删除.mp4", file=io.BytesIO(b"delete")),
+        ],
+        _admin=admin(),
+    )
+    root = Path(result["path"])
+
+    assert delete_source_video(str(root / "删除.mp4"), _admin=admin()) == {"deleted": True}
+    assert (root / "保留.mp4").is_file()
+    assert not (root / "删除.mp4").exists()
+
+    outside = workbench_database / "原始视频.mp4"
+    outside.write_bytes(b"original")
+    with pytest.raises(HTTPException) as error:
+        delete_source_video(str(outside), _admin=admin())
+    assert error.value.status_code == 400
+    assert outside.read_bytes() == b"original"
+
+    delete_source_video(str(root / "保留.mp4"), _admin=admin())
+    assert not root.exists()

@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\AppIcon.png" />
+    <Resource Include="Assets\AppIcon.ico" />
     <Content Include="..\LocalWorkbench\desktop-dist\**\*">
       <Link>LocalWorkbench\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

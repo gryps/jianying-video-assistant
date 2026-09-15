@@ -58,3 +58,15 @@
 - 产品、产品分类筛选、标签分类等选择控件统一复用组合下拉样式但保持原业务状态；模型配置卡标题区固定同高；侧栏取消横向溢出；桌面端只保留 Windows 标题栏的一套品牌，顶部删除可见刷新按钮。
 - “选择视频”改用与音频转文案、上传音乐相同的本地文件选择控件并保留视频多选。桌面模式不再创建 Web 专属 `ai-video`，Windows 数据目录已清理为 `databases`、`logs`、`workspace`。
 - 最新桌面包 `JianyingVideoAssistant-V11-BlueUI.zip` 为 495,456,980 字节，SHA-256 `DD8577DCE5EC79DA43D6D9C4442E117BFA97D041757AAECB03B7333C7A805551`。
+
+## 2026-09-16
+
+- V12 将素材打标改为逐视频单选：用户从视频列表选择一个当前视频，再按“标签分类 → 标签名称”的分组层级直接点选标签；同分类仍只允许一个标签，再次点击可取消。归类页不再提供标签分类和标签名称输入框，标签维护统一留在“产品与标签管理”。
+- 待归类视频新增删除操作；后端只允许删除 `runtime/video-imports` 下的单个暂存视频，拒绝任何暂存区外路径，删除最后一个视频后同步移除空批次目录，不触碰用户原始文件。
+- Windows 后端素材测试 16 项通过，前端桌面构建通过，Windows 解决方案恢复依赖后以 0 警告、0 错误完成 Release 构建。
+- Windows `C:\Users\gryps\source` 中 V8/V9/V10、WinUI/WPF 探针旧镜像及当前构建缓存已删除，只保留约 260 MB 当前源码镜像；发布目录和用户数据未删除。
+- V12 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V12-SingleTagging`，桌面快捷方式已指向 V12；最新桌面包 `JianyingVideoAssistant-V12-SingleTagging.zip` 为 419,821,640 字节，SHA-256 `666B9F0DB3BC3D960EF7B714165E6F73059C6E85390FD26522F61359761CD602`。
+- 用户指出归类结果不能继续藏在应用数据目录。V13 新增 WebView2 → WPF 原生文件选择桥接：桌面端直接取得同一原始目录内视频的绝对路径，归类后在原目录内创建产品文件夹；从待归类列表删除只移除当前选择，不删除原文件。归类成功提示展示完整目录并可直接打开。
+- 用户指出图标失真。应用 ICO 从单一 256px 图层改为保留原图比例的 16/20/24/32/40/48/64/128/256px 九层资源，WPF 窗口改为直接使用 ICO，V13 新路径也避免复用旧快捷方式图标缓存。
+- `C:\Users\gryps\source` 最终只保留 272,976,330 字节当前源码镜像，C 盘剩余约 12.9 GB；旧镜像、探针与所有本轮构建缓存均已清理。桌面只保留 V13 ZIP，V11/V12 ZIP 已删除，已发布程序和用户数据未删除。
+- V13 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V13-OriginalFolder` 并已运行，桌面快捷方式已切换；最新包 `JianyingVideoAssistant-V13-OriginalFolder.zip` 为 420,233,453 字节，SHA-256 `5AACC8EC089635FDF56EF85820D766DF392FE256E29199C956D1AF460D890477`。

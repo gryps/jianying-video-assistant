@@ -47,6 +47,7 @@ from .human_workflow_routes.materials import (
 from .human_workflow_routes.operations import operation_status
 from .human_workflow_routes.products import delete_human_product
 from .human_workflow_routes.source_files import (
+    delete_source_video,
     upload_source_videos,
 )
 from .human_workflow_routes.tags import (

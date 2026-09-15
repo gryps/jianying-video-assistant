@@ -36,8 +36,8 @@
 - Web 对照与部署：`work-ubuntu:/home/gryps/apps/ecommerce-ops-platform/ops-workbench`。
 - Windows 构建/运行机：`gryps@192.168.31.21`（网卡手动地址）；不得部署到 `.31`。
 - Windows 用户级 .NET SDK：`C:\Users\gryps\.dotnet\dotnet.exe`，版本 10.0.401。
-- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V11-BlueUI`。
-- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V11-BlueUI.zip`；包内不含用户数据。
+- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V13-OriginalFolder`。
+- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V13-OriginalFolder.zip`；包内不含用户数据。
 
 ## 发布前验证
 

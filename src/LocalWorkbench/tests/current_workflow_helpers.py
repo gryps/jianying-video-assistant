@@ -33,6 +33,7 @@ from app.api.v1.human_workflow import (
     delete_library_copy,
     delete_jianying_draft,
     delete_narration,
+    delete_source_video,
     delete_tag_category,
     list_global_tags,
     list_copy_iterations,

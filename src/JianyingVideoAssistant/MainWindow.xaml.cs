@@ -1,9 +1,11 @@
 using System.Diagnostics;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using JianyingVideoAssistant.Infrastructure;
 using Microsoft.Web.WebView2.Core;
+using Microsoft.Win32;
 
 namespace JianyingVideoAssistant;
 
@@ -58,10 +60,73 @@ public partial class MainWindow : Window
         core.Settings.IsStatusBarEnabled = false;
         core.NavigationStarting += OnNavigationStarting;
         core.NavigationCompleted += OnNavigationCompleted;
+        core.WebMessageReceived += OnWebMessageReceived;
         core.ProcessFailed += (_, _) => Dispatcher.Invoke(() => ShowError("显示进程意外停止，请重新启动本地工作台。"));
         core.NewWindowRequested += (_, args) => { args.Handled = true; OpenExternal(args.Uri); };
         _browserInitialized = true;
     }
+
+    private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        string requestId = "";
+        try
+        {
+            using var message = JsonDocument.Parse(e.WebMessageAsJson);
+            var root = message.RootElement;
+            var type = root.TryGetProperty("type", out var typeValue) ? typeValue.GetString() : "";
+            requestId = root.TryGetProperty("requestId", out var requestValue) ? requestValue.GetString() ?? "" : "";
+            if (type == "select-source-videos")
+            {
+                var dialog = new OpenFileDialog
+                {
+                    Title = "选择待归类视频",
+                    Multiselect = true,
+                    CheckFileExists = true,
+                    Filter = "视频文件|*.mp4;*.mov;*.m4v;*.avi;*.mkv;*.webm|所有文件|*.*",
+                };
+                if (dialog.ShowDialog(this) != true)
+                {
+                    PostDesktopMessage(new { type = "source-videos-selected", requestId, cancelled = true });
+                    return;
+                }
+                var sourceDirectories = dialog.FileNames
+                    .Select(Path.GetDirectoryName)
+                    .Where(path => !string.IsNullOrWhiteSpace(path))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                if (sourceDirectories.Length != 1)
+                    throw new InvalidOperationException("一次请选择同一文件夹内的视频。");
+                PostDesktopMessage(new
+                {
+                    type = "source-videos-selected",
+                    requestId,
+                    cancelled = false,
+                    sourceDir = sourceDirectories[0],
+                    videos = dialog.FileNames.Select(path => new
+                    {
+                        name = Path.GetFileName(path),
+                        relative_path = Path.GetFileName(path),
+                        path,
+                    }),
+                });
+                return;
+            }
+            if (type == "open-directory" && root.TryGetProperty("path", out var pathValue))
+            {
+                var path = pathValue.GetString();
+                if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+                    throw new DirectoryNotFoundException("归类目录不存在。");
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            }
+        }
+        catch (Exception exception)
+        {
+            PostDesktopMessage(new { type = "desktop-error", requestId, error = exception.Message });
+        }
+    }
+
+    private void PostDesktopMessage(object message) =>
+        WorkbenchBrowser.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(message));
 
     private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
