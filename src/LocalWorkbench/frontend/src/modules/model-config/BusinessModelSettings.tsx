@@ -54,7 +54,7 @@ export function BusinessModelSettings({ onError, onNotice }: { onError: (value: 
     const options = listed.length ? listed : [profile.model].filter(Boolean);
     const title = profile.label;
     return <article className="human-card business-model-card" key={stage}>
-      <div><b>{title}</b><span>{description}</span></div>
+      <div className="business-model-card-header"><b>{title}</b><span>{description}</span></div>
       <label>百炼兼容接口<input value={profile.base_url} onChange={event => update(stage, { base_url: event.target.value })} placeholder="https://.../compatible-mode/v1" /></label>
       <label>API Key<input type="password" value={profile.api_key} onChange={event => update(stage, { api_key: event.target.value })} placeholder={profile.api_key_mask || "sk-..."} /></label>
       {profile.secret_unavailable && <small className="human-error">此 Key 来自其他电脑或 Windows 用户，当前无法解密。请重新填写并保存。</small>}

@@ -1,7 +1,8 @@
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Boxes, FolderOpen, LoaderCircle } from "lucide-react";
+import { Boxes, LoaderCircle } from "lucide-react";
 import { api } from "../../api";
 import { ClassificationDropdown } from "../../components/ClassificationDropdown";
+import { SelectionDropdown } from "../../components/SelectionDropdown";
 import { usePersistentOperation } from "../../hooks/usePersistentOperation";
 import type { ClassifiedMaterial, Product, ProductCategory, SourceVideo, Tag, TagCategory } from "../../types";
 import { fuzzyRows } from "../../utils/fuzzy";
@@ -10,7 +11,7 @@ import { TagManager } from "./TagManager";
 
 export function Materials({ products, act }: { products: Product[]; act: (work: () => Promise<unknown>, success: string) => Promise<boolean> }) {
   const activeProducts = products.filter(item => item.status === "active");
-  const [tab, setTab] = useState<"master" | "classify">("classify");
+  const [tab, setTab] = useState<"master" | "classify">("master");
   const [productId, setProductId] = useState(0); const [productInput, setProductInput] = useState("");
   const [productCategoryId, setProductCategoryId] = useState(""); const [productCategories, setProductCategories] = useState<ProductCategory[]>([]);
   const [sourceDir, setSourceDir] = useState(""); const [videos, setVideos] = useState<SourceVideo[]>([]);
@@ -31,7 +32,6 @@ export function Materials({ products, act }: { products: Product[]; act: (work: 
   useEffect(() => { loadMaster().catch(() => { setCategories([]); setTags([]); }); }, [loadMaster]);
   async function uploadVideos(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || []);
-    event.target.value = "";
     if (!files.length) return;
     setSelecting(true);
     try {
@@ -75,6 +75,7 @@ export function Materials({ products, act }: { products: Product[]; act: (work: 
     if (completed) {
       setClassificationMessage("");
       setClassificationResult(movedAssets); setVideos([]); setSelectedTags({}); setSelectedVideos([]);
+      if (videoInputRef.current) videoInputRef.current.value = "";
     }
   }
   const categoryProducts = productCategoryId ? activeProducts.filter(item => item.category_id === productCategoryId) : [];
@@ -94,9 +95,9 @@ export function Materials({ products, act }: { products: Product[]; act: (work: 
       {classificationResult.length > 0 && <div className="human-note classification-result-note full"><Boxes /><div><b>本次归类成功</b><span>{classificationResult[0].product_name} · 已移动并重命名 {classificationResult.length} 个原视频</span><small title={classificationResult.map(item => item.filename).join("、")}>{classificationResult.map(item => item.filename).join("、")}</small></div></div>}
       <div className="human-card full"><div className="human-card-title"><div><h2>选择产品与视频</h2><p>先选择产品分类，再从该分类中查找产品名称。</p></div></div>
         <div className="classification-master-inputs">
-          <label>产品分类<select value={productCategoryId} onChange={event => { setProductCategoryId(event.target.value); setProductInput(""); setProductId(0); }}><option value="">选择产品分类</option>{productCategories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><small>分类用于缩小大量产品名称的选择范围</small></label>
-          <label>产品名称<div><input list="classify-product-hints" value={productInput} disabled={!productCategoryId} onChange={event => { setProductInput(event.target.value); setProductId(0); }} onBlur={() => { const match = categoryProducts.find(item => item.name === productInput.trim()); if (match) setProductId(match.id); }} placeholder={productCategoryId ? "输入可模糊查询" : "请先选择产品分类"} /><datalist id="classify-product-hints">{productMatches.map(item => <option key={item.id} value={item.name} />)}</datalist><button className="human-secondary" disabled={!productCategoryId} onMouseDown={event => event.preventDefault()} onClick={saveProduct}>新增并保存</button></div><small>{productId ? `已选择：${activeProducts.find(item => item.id === productId)?.name}` : "请选择已保存的产品名称"}</small></label>
-          <label>选择视频<div className="source-directory-field"><input value={sourceDir} readOnly placeholder="从电脑选择同一产品的一组视频" /><input ref={videoInputRef} type="file" accept="video/*,.mp4,.mov,.m4v,.avi,.mkv,.webm" multiple hidden onChange={uploadVideos} /><button type="button" className="human-secondary" disabled={selecting} onClick={() => videoInputRef.current?.click()}>{selecting ? <LoaderCircle className="spin" /> : <FolderOpen />}{selecting ? "正在上传" : "选择视频"}</button></div><small>{videos.length > 0 ? `已上传 ${videos.length} 个视频，可开始打标签` : "点击后从当前电脑选择视频，可多选"}</small></label>
+          <label>产品分类<SelectionDropdown value={productCategoryId} options={productCategories} placeholder="选择产品分类" onChange={value => { setProductCategoryId(value); setProductInput(""); setProductId(0); }} /><small>分类用于缩小大量产品名称的选择范围</small></label>
+          <label>产品名称<div><ClassificationDropdown value={productInput} options={productMatches} disabled={!productCategoryId} onChange={value => { setProductInput(value); setProductId(0); }} onSelect={item => { setProductInput(item.name); setProductId(item.id); }} placeholder={productCategoryId ? "输入可模糊查询，或展开列表" : "请先选择产品分类"} /><button className="human-secondary" disabled={!productCategoryId} onMouseDown={event => event.preventDefault()} onClick={saveProduct}>新增并保存</button></div><small>{productId ? `已选择：${activeProducts.find(item => item.id === productId)?.name}` : "请选择已保存的产品名称"}</small></label>
+          <label>选择视频<input ref={videoInputRef} type="file" accept="video/*,.mp4,.mov,.m4v,.avi,.mkv,.webm" multiple disabled={selecting} onChange={uploadVideos} /><small>{selecting ? "正在上传所选视频…" : videos.length > 0 ? `已上传 ${videos.length} 个视频，可开始打标签` : "从当前电脑选择同一产品的一组视频，可多选"}</small></label>
         </div>
       </div>
       <div className="human-card full"><div className="human-card-title"><h2>批量选择与打标签</h2><span>未打标签的视频不能归类</span></div>

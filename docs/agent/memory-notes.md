@@ -53,4 +53,8 @@
 - V10 安全独立版已发布到 `%LocalAppData%\JianyingVideoAssistant\App-V10-SecureStandalone`，桌面 ZIP 为 `JianyingVideoAssistant-V10-SecureStandalone.zip`（418,761,459 字节，SHA-256 `E8CB853574C50E432D7DE145182CE99FA9A9175187148DD89558A8C999961DD4`）。Windows DPAPI 16 项测试、Release 构建、打包服务密钥落盘检查、结构冒烟和登录页实机截图通过；桌面上的既有助手快捷方式均指向 V10。
 - V11 修正桌面构建标志缺失：升级后会清理无效的 AI 视频导航状态，客户端不再显示 AI 视频、生产总览和 AI 视频相关模型卡；启动页改为素材归类，通用 404 不再显示英文 `Not Found`。
 - V11 菜单改用通过 WCAG AA 的 Microsoft Blue 状态色；产品/标签管理改为纵向区块，标签分类和名称合并为同一卡片且分类可直接筛选标签；旁白页限制横向溢出，背景音乐两个导入按钮底部对齐。
-- 用户指定的人物云服务 PNG 已用作 EXE、窗口标题栏和快捷方式图标。V11 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V11-BlueUI`；桌面包 `JianyingVideoAssistant-V11-BlueUI.zip` 为 495,027,483 字节，SHA-256 `773DBA0E0C51DFC2493BC1FD76651F50ABF5C88316FB452DA8AC6769AA19419F`，Windows 自包含发布、登录会话启动和实机截图均通过。
+- 用户指定的人物云服务 PNG 已用作 EXE、窗口标题栏、登录页和快捷方式图标。V11 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V11-BlueUI`；Windows 自包含发布、登录会话启动和实机截图均通过。
+- 素材归类入口默认子页调整为“产品与标签管理”；背景音乐的链接提取与上传卡片改用网格行拉伸和内部弹性布局，确保两张卡片外框和底部主按钮对齐。
+- 产品、产品分类筛选、标签分类等选择控件统一复用组合下拉样式但保持原业务状态；模型配置卡标题区固定同高；侧栏取消横向溢出；桌面端只保留 Windows 标题栏的一套品牌，顶部删除可见刷新按钮。
+- “选择视频”改用与音频转文案、上传音乐相同的本地文件选择控件并保留视频多选。桌面模式不再创建 Web 专属 `ai-video`，Windows 数据目录已清理为 `databases`、`logs`、`workspace`。
+- 最新桌面包 `JianyingVideoAssistant-V11-BlueUI.zip` 为 495,456,980 字节，SHA-256 `DD8577DCE5EC79DA43D6D9C4442E117BFA97D041757AAECB03B7333C7A805551`。

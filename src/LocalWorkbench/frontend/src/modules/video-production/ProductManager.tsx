@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, FolderTree, Search } from "lucide-react";
 import { api } from "../../api";
 import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDialog";
+import { SelectionDropdown } from "../../components/SelectionDropdown";
 import type { DeleteConfirmation, Product, ProductCategory, ProductPage } from "../../types";
 
 const PAGE_SIZE = 20;
@@ -101,7 +102,7 @@ export function ProductManager({ act }: {
       </form>
       <form className="product-master-create" onSubmit={create}>
         <div className="product-manager-heading"><span><b>新增产品名称</b><small>产品名称必须归入一个分类</small></span></div>
-        <div><select value={categoryId} onChange={event => setCategoryId(event.target.value)} required><option value="">选择产品分类</option>{categories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><input value={name} onChange={event => setName(event.target.value)} placeholder="输入产品名称" maxLength={160} required /><button disabled={!categoryId}>添加产品</button></div>
+        <div><SelectionDropdown value={categoryId} options={categories} placeholder="选择产品分类" onChange={setCategoryId} /><input value={name} onChange={event => setName(event.target.value)} placeholder="输入产品名称" maxLength={160} required /><button disabled={!categoryId}>添加产品</button></div>
       </form>
     </div>
 
@@ -114,14 +115,14 @@ export function ProductManager({ act }: {
       <form onSubmit={event => { event.preventDefault(); setPage(1); setQuery(queryInput.trim()); }}>
         <Search /><input value={queryInput} onChange={event => setQueryInput(event.target.value)} placeholder="搜索产品名称" /><button className="human-secondary">搜索</button>
       </form>
-      <select value={filterCategoryId} onChange={event => { setFilterCategoryId(event.target.value); setPage(1); }}><option value="">全部产品分类</option>{categories.map(item => <option key={item.id} value={item.id}>{item.name}（{item.product_count}）</option>)}</select>
+      <SelectionDropdown value={filterCategoryId} options={categories.map(item => ({ ...item, name: `${item.name}（${item.product_count}）` }))} placeholder="全部产品分类" allLabel="全部产品分类" onChange={value => { setFilterCategoryId(value); setPage(1); }} />
     </div>
 
     <div className="product-table-wrap" aria-busy={loading}>
       <table className="product-table">
         <thead><tr><th>产品分类</th><th>产品名称</th><th>素材数量</th><th>系统编号</th><th>操作</th></tr></thead>
         <tbody>{rows.map(product => <tr key={product.id}>
-          <td>{editingId === product.id ? <select value={editingCategoryId} onChange={event => setEditingCategoryId(event.target.value)}>{categories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select> : <span className="category-pill">{product.category_name}</span>}</td>
+          <td>{editingId === product.id ? <SelectionDropdown value={editingCategoryId} options={categories} placeholder="选择产品分类" onChange={setEditingCategoryId} /> : <span className="category-pill">{product.category_name}</span>}</td>
           <td>{editingId === product.id ? <input autoFocus value={editingName} maxLength={160} onChange={event => setEditingName(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setEditingId(null); if (event.key === "Enter") { event.preventDefault(); saveProduct(product); } }} /> : <b>{product.name}</b>}</td>
           <td>{product.asset_count}</td><td><code>{product.system_code}</code></td>
           <td><div className="table-actions">{editingId === product.id ? <><button type="button" onClick={() => saveProduct(product)}>保存</button><button type="button" className="human-secondary" onClick={() => setEditingId(null)}>取消</button></> : <button type="button" className="human-secondary" onClick={() => { setEditingId(product.id); setEditingName(product.name); setEditingCategoryId(product.category_id || categories[0]?.id || ""); }}>编辑</button>}<button type="button" className="human-secondary danger" onClick={() => setConfirmation({ title: `删除产品“${product.name}”？`, message: "将删除产品及数据库关联，磁盘上的视频不会移动或改名。", onConfirm: async () => { const ok = await act(() => api(`/human/products/${product.id}`, { method: "DELETE" }), "产品已删除"); if (ok) { await Promise.all([loadCategories(), loadPage()]); } } })}>删除</button></div></td>

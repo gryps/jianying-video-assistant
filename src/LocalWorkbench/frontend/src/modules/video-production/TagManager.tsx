@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../../api";
 import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDialog";
+import { SelectionDropdown } from "../../components/SelectionDropdown";
 import type { DeleteConfirmation, Tag, TagCategory } from "../../types";
 import { fuzzyRows } from "../../utils/fuzzy";
 
@@ -27,7 +28,7 @@ export function TagManager({ categories, tags, reload, act }: {
     </section>
     <section className="master-tag-section"><div className="master-tag-section-title"><b>2. 标签名称</b><span>同一名称可存在于不同分类</span></div>
       <form className="master-tag-create" onSubmit={event => { event.preventDefault(); run(() => api("/human/tags", { method: "POST", body: JSON.stringify({ category_id: categoryId, name: tagName }) }), "标签已保存").then(() => setTagName("")); }}>
-        <select value={categoryId} onChange={event => { setCategoryId(event.target.value); setPage(0); }} required><option value="">选择标签分类</option>{categories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+        <SelectionDropdown value={categoryId} options={categories} placeholder="选择标签分类" onChange={value => { setCategoryId(value); setPage(0); }} />
         <input list="master-tag-hints" value={tagName} onChange={event => setTagName(event.target.value)} placeholder="输入或查询标签名称" required /><datalist id="master-tag-hints">{fuzzyRows(tags.filter(item => item.category_id === categoryId), tagName, item => item.name).map(item => <option key={item.id} value={item.name} />)}</datalist><button disabled={!categoryId}>单独保存</button>
       </form>
       <div className="product-library-summary"><span>{categoryId ? `${categories.find(item => item.id === categoryId)?.name ?? ""}分类` : "全部分类"} · {shown.length} 个标签</span></div>

@@ -34,6 +34,7 @@ const storedExpandedModules = (module: PlatformModule): ModuleNavKey[] => {
 export function useNavigationState() {
   const [module, setModule] = useState<PlatformModule>(storedPlatformModule);
   const [view, setView] = useState<View>(desktop ? "materials" : "flow");
+  const [viewRevision, setViewRevision] = useState(0);
   const [expandedModules, setExpandedModules] = useState<ModuleNavKey[]>(() => storedExpandedModules(module));
   const [selectedSecondaryOwner, setSelectedSecondaryOwner] = useState<ModuleNavKey | "">("");
 
@@ -57,11 +58,13 @@ export function useNavigationState() {
     setSelectedSecondaryOwner(owner);
     setModule("video");
     setView(key);
+    setViewRevision(value => value + 1);
   };
 
   return {
     module,
     view,
+    viewRevision,
     expandedModules,
     selectedSecondaryOwner,
     activeTitle: getActiveTitle(module, view),

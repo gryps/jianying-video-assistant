@@ -9,7 +9,7 @@ button { cursor: pointer; }
 .human-brand > svg { flex: none; width: 20px; color: #b5d474; }
 .human-brand span { display: grid; gap: 3px; }
 .human-brand small { color: #8e9a93; font-size: 9px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
-.human-sidebar-toggle { position: absolute; top: 24px; right: -13px; width: 28px; min-height: 28px !important; padding: 0 !important; border: 1px solid #46544c !important; border-radius: 50% !important; background: #26342d !important; color: #dce4de !important; box-shadow: 0 3px 10px rgb(0 0 0 / 18%); }
+.human-sidebar-toggle { position: absolute; top: 24px; right: 6px; width: 28px; min-height: 28px !important; padding: 0 !important; border: 1px solid #46544c !important; border-radius: 50% !important; background: #26342d !important; color: #dce4de !important; box-shadow: 0 3px 10px rgb(0 0 0 / 18%); }
 .human-sidebar-toggle svg { width: 14px !important; }
 .platform-module-switch { display: grid; gap: 12px; margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #344139; }
 .platform-module-group { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid rgb(255 255 255 / 8%); }

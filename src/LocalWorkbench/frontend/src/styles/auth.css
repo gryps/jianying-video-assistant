@@ -4,5 +4,6 @@
 .human-auth h1 { margin: 5px 0 10px; font-size: 23px; }
 .human-auth label { display: grid; gap: 7px; color: #657067; font-size: 12px; font-weight: 650; }
 .human-logo { display: flex; align-items: center; gap: 9px; color: #3f5930; font-weight: 800; }
+.human-logo img { width: 24px; height: 24px; border-radius: 7px; object-fit: cover; }
 .human-error { margin: 0; padding: 9px; font-size: 11px; }
 .human-loading { display: flex; gap: 8px; color: #647067; }

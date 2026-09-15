@@ -16,12 +16,9 @@
         <Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition Height="*" /></Grid.RowDefinitions>
         <Border Background="{DynamicResource RailBrush}" BorderBrush="{DynamicResource CardStrokeBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="14,0,10,0">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <Image Width="25" Height="25" Source="Assets/AppIcon.png" Stretch="Uniform" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="剪映视频助手" Margin="9,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center" />
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center"><Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="{DynamicResource WarningBrush}" /><TextBlock x:Name="StatusText" Text="正在启动本地工作台" Margin="6,0,0,0" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" /><ProgressBar x:Name="StartupProgress" Width="64" Height="3" Margin="10,0,0,0" IsIndeterminate="True" /></StackPanel>
-                <Button Grid.Column="3" Content="刷新" Click="OnReloadClick" Padding="12,4" MinHeight="29" />
-                <Button Grid.Column="4" Content="打开数据目录" Click="OnOpenDataFolderClick" Margin="8,0,0,0" Padding="12,4" MinHeight="29" />
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="{DynamicResource WarningBrush}" /><TextBlock x:Name="StatusText" Text="正在启动本地工作台" Margin="6,0,0,0" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" /><ProgressBar x:Name="StartupProgress" Width="64" Height="3" Margin="10,0,0,0" IsIndeterminate="True" /></StackPanel>
+                <Button Grid.Column="1" Content="打开数据目录" Click="OnOpenDataFolderClick" Padding="12,4" MinHeight="29" />
             </Grid>
         </Border>
         <Grid Grid.Row="1">

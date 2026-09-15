@@ -23,7 +23,7 @@ export function SidebarNav({ sidebarCollapsed, module, view, expandedModules, se
     <button className="human-logout" onClick={onLogout}><LogOut /><span>退出 {username}</span></button>
   </aside>;
   return <aside>
-    <div className="human-brand"><Film /><span>剪映视频助手<small>VIDEO WORKSPACE</small></span></div>
+    <div className="desktop-sidebar-controls" aria-hidden="true" />
     <button type="button" className="human-sidebar-toggle" aria-label={sidebarCollapsed ? "展开导航" : "收起导航"} onClick={onToggleSidebar}>{sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</button>
     <div className="platform-module-switch" aria-label="主导航">
       <section className="platform-module-group">

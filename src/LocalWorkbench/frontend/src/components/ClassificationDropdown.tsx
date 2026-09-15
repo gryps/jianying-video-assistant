@@ -2,13 +2,13 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { fuzzyRows } from "../utils/fuzzy";
 
-export function ClassificationDropdown({ value, options, placeholder, disabled = false, onChange, onSelect }: {
+export function ClassificationDropdown<T extends { id: string | number; name: string }>({ value, options, placeholder, disabled = false, onChange, onSelect }: {
   value: string;
-  options: Array<{ id: string; name: string }>;
+  options: T[];
   placeholder: string;
   disabled?: boolean;
   onChange: (value: string) => void;
-  onSelect: (item: { id: string; name: string }) => void;
+  onSelect: (item: T) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
