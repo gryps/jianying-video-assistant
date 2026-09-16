@@ -3,6 +3,35 @@ import { LoaderCircle, Sparkles } from "lucide-react";
 import { fetchModelList, fetchModelProfiles, saveModelProfile } from "../../api";
 import type { ModelProfile } from "../../types";
 
+type ModelAdvice = { guidance: string; matches: string[] };
+
+function modelSelectionAdvice(stage: string, models: string[]): ModelAdvice | null {
+  const uniqueMatches = (pattern: RegExp, excluded?: RegExp) => models
+    .filter(model => pattern.test(model) && (!excluded || !excluded.test(model)))
+    .filter((model, index, rows) => rows.indexOf(model) === index)
+    .slice(0, 4);
+
+  if (stage === "copywriting") {
+    return {
+      guidance: "优先选择同系列最新一代 qwenN.x-max；N.x 表示版本占位，例如可从 qwen3.8-max 升级到 qwen3.9-max，未来也可选择 qwen4.x-max。更重视速度和成本时，可选择同代 plus。",
+      matches: uniqueMatches(/^qwen\d+(?:\.\d+)?-max(?:-|$)/i),
+    };
+  }
+  if (stage === "speech_recognition") {
+    return {
+      guidance: "请选择非实时 ASR 模型。当前流程支持 qwen-audio-N.x-asr-flash 或 qwenN-asr-flash；不要选择名称中带 realtime 或 filetrans 的模型。",
+      matches: uniqueMatches(/^qwen(?:-audio)?[\w.-]*-asr-flash(?:-|$)/i, /realtime|filetrans/i),
+    };
+  }
+  if (stage === "speech_synthesis") {
+    return {
+      guidance: "当前 597 个内置音色与 qwen-audio-3.0-tts-plus 配套，建议优先选择该模型。将来升级到 qwen-audio-N.x-tts-plus 前，应先确认原音色参数仍兼容。",
+      matches: uniqueMatches(/^qwen-audio-\d+(?:\.\d+)?-tts-plus(?:-|$)/i),
+    };
+  }
+  return null;
+}
+
 export function BusinessModelSettings({ onError, onNotice }: { onError: (value: string) => void; onNotice: (value: string) => void }) {
   const desktop = import.meta.env.VITE_DESKTOP_MODE === "1";
   const [profiles, setProfiles] = useState<ModelProfile[]>([]);
@@ -27,7 +56,7 @@ export function BusinessModelSettings({ onError, onNotice }: { onError: (value: 
       const value = await fetchModelList(profile);
       setModelLists(rows => ({ ...rows, [profile.stage]: value.models }));
       const message = profile.stage === "speech_recognition"
-        ? `已读取 ${value.models.length} 个可用于音频转文案的非实时模型，请从下拉列表选择后保存。`
+        ? `已读取完整模型列表，共 ${value.models.length} 个；请自行选择语音识别模型后保存。`
         : `已读取 ${value.models.length} 个模型，请从下拉列表选择后保存。`;
       setModelListMessages(rows => ({ ...rows, [profile.stage]: { text: message, error: false } }));
       onNotice(message);
@@ -59,6 +88,7 @@ export function BusinessModelSettings({ onError, onNotice }: { onError: (value: 
     if (!profile) return null;
     const listed = modelLists[stage] ?? [];
     const options = listed.length ? listed : [profile.model].filter(Boolean);
+    const advice = listed.length ? modelSelectionAdvice(stage, listed) : null;
     const title = profile.label;
     return <article className="human-card business-model-card" key={stage}>
       <div className="business-model-card-header"><b>{title}</b><span>{description}</span></div>
@@ -66,9 +96,9 @@ export function BusinessModelSettings({ onError, onNotice }: { onError: (value: 
       <label>API Key<input type="password" value={profile.api_key} onChange={event => update(stage, { api_key: event.target.value })} placeholder={profile.api_key_mask || "sk-..."} /></label>
       {profile.secret_unavailable && <small className="human-error">此 Key 来自其他电脑或 Windows 用户，当前无法解密。请重新填写并保存。</small>}
       <label>模型类别{listed.length ? <select value={profile.model} onChange={event => update(stage, { model: event.target.value })}><option value="">请选择模型类别</option>{options.map(value => <option key={value} value={value}>{value}</option>)}</select> : <input value={profile.model} onChange={event => update(stage, { model: event.target.value })} placeholder={stage === "speech_recognition" ? "例如 qwen-audio-3.0-asr-flash" : stage === "image_analysis" ? "请选择支持图片输入的视觉模型，例如 qwen-vl" : stage === "image_generation" ? "请选择支持参考图生图的模型" : stage === "ai_video_generation" ? "请填写文生视频或图生视频模型" : "读取列表后可下拉选择，也可手动填写"} />}</label>
+      {advice && <div className="model-choice-advice"><b>选择建议</b><span>{advice.guidance}</span>{advice.matches.length > 0 && <small>当前列表中可优先查看：{advice.matches.join("、")}</small>}</div>}
       <small>协议：{profile.protocol || "未声明"}；适配器：{profile.provider_type || "openai_compatible"}</small>
       {!!profile.capabilities?.length && <div className="business-model-capabilities">{profile.capabilities.map(value => <span key={value}>{value}</span>)}</div>}
-      {stage === "speech_recognition" && <small>支持非实时 qwen-audio-3.0-asr-flash 和 qwen3-asr-flash；realtime 与 filetrans 模型不适用于这里。</small>}
       {stage === "image_analysis" && <small>用于分析产品组原图并为各图类生成可人工编辑的提示词。</small>}
       {stage === "image_generation" && <small>用于接收提示词与原图，生成白底图、环境图、模特图、详情图等 AI 图。</small>}
       {stage === "ai_video_generation" && <small>用于 AI 视频文生视频和图生视频任务，只保存平台侧连接，不写入 ComfyUI workflow。可灵这类平台如读取模型列表 404，可跳过读取并手工填写模型名后保存。</small>}

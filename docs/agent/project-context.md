@@ -36,8 +36,8 @@
 - Web 对照与部署：`work-ubuntu:/home/gryps/apps/ecommerce-ops-platform/ops-workbench`。
 - Windows 构建/运行机：`gryps@192.168.31.21`（网卡手动地址）；不得部署到 `.31`。
 - Windows 构建机当前只保留随应用发布的 .NET Runtime，没有常驻 .NET SDK；宿主需要重编译时再临时安装 SDK，完成后清理。
-- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V18-QwenAudioAsr`。
-- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V18-QwenAudioAsr.zip`；包内不含用户数据库和 API Key。
+- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V19-FullModelList`。
+- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V19-FullModelList.zip`；包内不含用户数据库和 API Key。
 
 ## 发布前验证
 

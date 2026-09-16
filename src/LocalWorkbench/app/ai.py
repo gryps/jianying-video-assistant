@@ -78,12 +78,12 @@ def is_supported_speech_recognition_model(model: str) -> bool:
 
 def models_for_profile_stage(stage: str, models: list[str], base_url: str = "") -> list[str]:
     if stage == "speech_recognition":
-        supported = [item for item in models if is_supported_speech_recognition_model(item)]
+        available = list(models)
         hostname = (urlparse(base_url).hostname or "").casefold()
         qwen_audio = "qwen-audio-3.0-asr-flash"
-        if hostname.endswith(".maas.aliyuncs.com") and qwen_audio not in supported:
-            supported.append(qwen_audio)
-        return supported
+        if hostname.endswith(".maas.aliyuncs.com") and qwen_audio not in available:
+            available.append(qwen_audio)
+        return available
     return models
 
 

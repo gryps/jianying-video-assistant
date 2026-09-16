@@ -170,7 +170,7 @@ def test_qwen_asr_retries_provider_internal_errors(tmp_path, monkeypatch):
     assert logs[-1]["output_payload"]["provider_request_id"] == "success-3"
 
 
-def test_speech_recognition_model_list_excludes_incompatible_asr_protocols():
+def test_speech_recognition_model_list_keeps_provider_models_unfiltered():
     assert models_for_profile_stage(
         "speech_recognition",
         [
@@ -183,9 +183,13 @@ def test_speech_recognition_model_list_excludes_incompatible_asr_protocols():
             "qwen-plus",
         ],
     ) == [
+        "qwen3-asr-flash-realtime",
+        "qwen3-asr-flash-filetrans",
         "qwen3-asr-flash",
         "qwen3-asr-flash-2026-02-10",
         "qwen-audio-3.0-asr-flash",
+        "qwen-audio-3.0-asr-flash-filetrans",
+        "qwen-plus",
     ]
 
 
@@ -194,7 +198,11 @@ def test_bailian_workspace_model_list_includes_qwen_audio_asr_adapter():
         "speech_recognition",
         ["qwen-audio-3.0-realtime-plus", "qwen-audio-3.0-tts-plus"],
         "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
-    ) == ["qwen-audio-3.0-asr-flash"]
+    ) == [
+        "qwen-audio-3.0-realtime-plus",
+        "qwen-audio-3.0-tts-plus",
+        "qwen-audio-3.0-asr-flash",
+    ]
 
 
 def test_speech_recognition_profile_rejects_realtime_model(workbench_database):
