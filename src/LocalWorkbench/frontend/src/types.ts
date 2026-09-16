@@ -1,5 +1,5 @@
 ﻿export type View = "flow" | "materials" | "copy" | "music" | "production";
-export type PlatformModule = "video" | "aiVideo" | "models";
+export type PlatformModule = "video" | "aiVideo" | "models" | "about";
 
 export type User = {
   id: string;

@@ -352,6 +352,44 @@ def test_jianying_draft_clamps_bad_subtitle_cues_to_narration_duration(workbench
         assert draft.snapshot["duration_microseconds"] == 12_130_000
 
 
+def test_jianying_draft_splits_long_copy_and_preserves_full_snapshot(workbench_database):
+    destination = workbench_database / "jianying-long-copy"
+    destination.mkdir()
+    original = "第一段介绍产品的主要用途，也说明适合的人群。第二段继续补充使用方式和注意事项，让内容能够被正常阅读。最后一句用于收尾。"
+    with session_scope() as session:
+        copy = CopyContent(content_text=original, normalized_content=original, source="manual")
+        session.add(copy)
+        session.flush()
+        draft = create_jianying_draft(
+            session,
+            name="长文案草稿",
+            destination_dir=str(destination),
+            copy_content_id=copy.id,
+            narration_asset_id=None,
+            music_resource_id=None,
+            created_by=None,
+        )
+        content = json.loads((Path(draft.draft_path) / "draft_content.json").read_text(encoding="utf-8"))
+        copy_segments = [
+            segment
+            for track in content["tracks"]
+            if track["type"] == "text"
+            for segment in track["segments"]
+            if segment["role"] == "copy"
+        ]
+        material_text = {
+            material["id"]: json.loads(material["content"])["text"]
+            for material in content["materials"]["texts"]
+        }
+        assert len(copy_segments) >= 3
+        assert "".join(material_text[segment["material_id"]] for segment in copy_segments) == original
+        assert [segment["target_timerange"]["start"] for segment in copy_segments][0] == 0
+        assert sum(segment["target_timerange"]["duration"] for segment in copy_segments) == content["duration"]
+        assert content["duration"] > 5_000_000
+        assert draft.snapshot["copy"]["text"] == original
+        assert draft.snapshot["duration_source"] == "copy_readability"
+
+
 def test_delete_jianying_draft_removes_record_only(workbench_database):
     draft_dir = workbench_database / "existing-draft"
     draft_dir.mkdir()

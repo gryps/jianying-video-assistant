@@ -25,6 +25,10 @@ from app.services.jianying_draft_counters import (
 
 SETTING_KEY = "jianying_draft_directory"
 COPY_ONLY_DURATION_MICROSECONDS = 5_000_000
+COPY_CHUNK_MAX_CHARACTERS = 28
+COPY_CHUNK_MIN_DURATION_MICROSECONDS = 2_000_000
+COPY_CHARACTER_DURATION_MICROSECONDS = 160_000
+COPY_CHUNK_MAX_DURATION_MICROSECONDS = 5_000_000
 MAX_FALLBACK_AUDIO_SECONDS = 30 * 60
 
 
@@ -248,6 +252,46 @@ def _copy_text_duration_microseconds(effective_subtitle_end: int, narration_dura
     if total_duration > 0:
         return min(total_duration, COPY_ONLY_DURATION_MICROSECONDS)
     return COPY_ONLY_DURATION_MICROSECONDS
+
+
+def _split_copy_text(content: str, max_characters: int = COPY_CHUNK_MAX_CHARACTERS) -> list[str]:
+    text = content.strip()
+    if not text:
+        return []
+    sentence_parts = re.findall(r".+?(?:[。！？!?；;\n]+|$)", text, flags=re.DOTALL)
+    chunks: list[str] = []
+    soft_breaks = "，,、：: \t"
+    for sentence in sentence_parts:
+        remaining = sentence.strip()
+        while len(remaining) > max_characters:
+            split_at = max((remaining.rfind(mark, 0, max_characters + 1) + 1 for mark in soft_breaks), default=0)
+            if split_at < max_characters // 2:
+                split_at = max_characters
+            chunk = remaining[:split_at].strip()
+            if chunk:
+                chunks.append(chunk)
+            remaining = remaining[split_at:].strip()
+        if remaining:
+            chunks.append(remaining)
+    return chunks or [text]
+
+
+def _copy_chunk_duration_microseconds(content: str) -> int:
+    visible_characters = len(re.sub(r"\s+", "", content))
+    return min(
+        COPY_CHUNK_MAX_DURATION_MICROSECONDS,
+        max(COPY_CHUNK_MIN_DURATION_MICROSECONDS, visible_characters * COPY_CHARACTER_DURATION_MICROSECONDS),
+    )
+
+
+def _scaled_copy_chunk_durations(chunks: list[str], total_duration: int) -> list[int]:
+    if not chunks:
+        return []
+    weights = [_copy_chunk_duration_microseconds(chunk) for chunk in chunks]
+    weight_total = sum(weights)
+    durations = [max(1, round(total_duration * weight / weight_total)) for weight in weights]
+    durations[-1] += total_duration - sum(durations)
+    return durations
 
 
 def _text_material(content: str) -> tuple[str, dict[str, Any]]:
@@ -569,8 +613,11 @@ def create_jianying_draft(
     narration_duration = _narration_duration_microseconds(narration)
     effective_subtitle_end = _effective_subtitle_end_microseconds(subtitle_end, narration_duration)
     music_duration = _safe_audio_duration_microseconds(Path(music.file_path), music.duration_seconds) if music else 0
+    copy_chunks = _split_copy_text(copy.content_text) if copy else []
+    copy_read_duration = sum(_copy_chunk_duration_microseconds(chunk) for chunk in copy_chunks)
     timed_duration = max(effective_subtitle_end, narration_duration, music_duration)
-    total_duration = timed_duration or COPY_ONLY_DURATION_MICROSECONDS
+    copy_only_floor = COPY_ONLY_DURATION_MICROSECONDS if copy and timed_duration == 0 else 0
+    total_duration = max(timed_duration, copy_read_duration, copy_only_floor)
 
     draft = JianyingDraft(
         name=draft_root.name,
@@ -587,20 +634,24 @@ def create_jianying_draft(
     text_materials: list[dict[str, Any]] = []
     copy_text_segments: list[dict[str, Any]] = []
     subtitle_text_segments: list[dict[str, Any]] = []
-    if copy and copy.content_text.strip():
-        material_id, material = _text_material(copy.content_text.strip())
-        text_materials.append(material)
-        copy_text_segments.append(
-            {
-                "id": _material_id(),
-                "material_id": material_id,
-                "target_timerange": {
-                    "start": 0,
-                    "duration": _copy_text_duration_microseconds(effective_subtitle_end, narration_duration, total_duration),
-                },
-                "role": "copy",
-            }
+    if copy_chunks:
+        copy_track_duration = max(
+            _copy_text_duration_microseconds(effective_subtitle_end, narration_duration, total_duration),
+            copy_read_duration,
         )
+        copy_start = 0
+        for chunk, duration in zip(copy_chunks, _scaled_copy_chunk_durations(copy_chunks, copy_track_duration), strict=True):
+            material_id, material = _text_material(chunk)
+            text_materials.append(material)
+            copy_text_segments.append(
+                {
+                    "id": _material_id(),
+                    "material_id": material_id,
+                    "target_timerange": {"start": copy_start, "duration": duration},
+                    "role": "copy",
+                }
+            )
+            copy_start += duration
 
     cues = list(narration.subtitle_cues or []) if narration else []
     max_subtitle_end = effective_subtitle_end
@@ -738,7 +789,13 @@ def create_jianying_draft(
         "music": {"id": music.id, "name": music.name, "path": music.file_path} if music else None,
         "destination_dir": str(destination),
         "duration_microseconds": total_duration,
-        "duration_source": "timed_materials" if timed_duration else "copy_only_default",
+        "duration_source": (
+            "timed_materials"
+            if timed_duration >= max(copy_read_duration, copy_only_floor)
+            else "copy_readability"
+            if copy_read_duration > copy_only_floor
+            else "copy_only_default"
+        ),
         "duplicate_usage_count_before_create": duplicate_usage_count,
     }
     draft.status = "ready"

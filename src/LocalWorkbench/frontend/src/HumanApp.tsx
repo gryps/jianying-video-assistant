@@ -9,6 +9,7 @@ import { useAccountDialogState } from "./components/shell/useAccountDialogState"
 import { useNavigationState } from "./components/shell/useNavigationState";
 import { useWorkbenchData } from "./components/shell/useWorkbenchData";
 import { AiVideoProduction } from "./modules/ai-video-production/AiVideoProduction";
+import { About } from "./modules/app-info/About";
 import { BusinessModelSettings } from "./modules/model-config/BusinessModelSettings";
 import { CopyLibrary, DraftProduction, Flow, Materials, MusicLibrary } from "./modules/video-production/VideoProduction";
 
@@ -92,6 +93,7 @@ export default function HumanApp() {
       {navigation.module === "video" && navigation.view === "production" && <DraftProduction copies={workbench.copies} narrations={workbench.narrations} music={workbench.music} drafts={workbench.drafts} act={workbench.act} />}
       {!desktop && navigation.module === "aiVideo" && <AiVideoProduction onError={workbench.setError} onNotice={workbench.setNotice} />}
       {navigation.module === "models" && <BusinessModelSettings onError={workbench.setError} onNotice={workbench.setNotice} />}
+      {navigation.module === "about" && <About />}
     </main>
   </div>;
 }

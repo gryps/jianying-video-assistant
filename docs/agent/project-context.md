@@ -8,7 +8,7 @@
 
 ## 产品基线
 
-- 客户端固定入口：素材归类、内容文库、背景音乐、剪映草稿、模型配置；启动后直接进入素材归类。
+- 客户端固定入口：素材归类、内容文库、背景音乐、剪映草稿、模型配置、关于；启动后直接进入素材归类。
 - `192.168.31.24:8000/workbench/` 是 Web 部署对照，不是客户端运行依赖。
 - `.24` 的模型配置导航已恢复；Web 端保留其 AI 视频模块，桌面端不注册入口、不渲染页面，也不显示 AI 视频相关模型卡片。
 - 客户端与 `.24` 各自使用独立数据库，不承诺自动同步。
@@ -36,8 +36,8 @@
 - Web 对照与部署：`work-ubuntu:/home/gryps/apps/ecommerce-ops-platform/ops-workbench`。
 - Windows 构建/运行机：`gryps@192.168.31.21`（网卡手动地址）；不得部署到 `.31`。
 - Windows 构建机当前只保留随应用发布的 .NET Runtime，没有常驻 .NET SDK；宿主需要重编译时再临时安装 SDK，完成后清理。
-- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V19-FullModelList`。
-- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V19-FullModelList.zip`；包内不含用户数据库和 API Key。
+- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V20-LongContentAbout`。
+- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V20-LongContentAbout.zip`；包内不含用户数据库和 API Key。
 
 ## 发布前验证
 

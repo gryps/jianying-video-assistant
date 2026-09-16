@@ -10,7 +10,7 @@ import {
 } from "./moduleNavigation";
 
 const desktop = import.meta.env.VITE_DESKTOP_MODE === "1";
-const validModules: PlatformModule[] = desktop ? ["video", "models"] : ["aiVideo", "video", "models"];
+const validModules: PlatformModule[] = desktop ? ["video", "models", "about"] : ["aiVideo", "video", "models"];
 
 const storedPlatformModule = (): PlatformModule => {
   const stored = localStorage.getItem("platform_module");

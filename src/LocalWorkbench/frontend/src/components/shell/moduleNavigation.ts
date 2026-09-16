@@ -46,6 +46,7 @@ export function getExpandedModule(value: PlatformModule): ModuleNavKey | "" {
 export function getActiveTitle(module: PlatformModule, view: View) {
   if (module === "video") return videoNav.find(([key]) => key === view)?.[1];
   if (module === "models") return "模型配置";
+  if (module === "about") return "关于";
   return "AI视频";
 }
 
@@ -53,5 +54,6 @@ export function getHeaderSubtitle(module: PlatformModule) {
   const product = import.meta.env.VITE_DESKTOP_MODE === "1" ? "剪映视频助手" : "电商内容平台";
   if (module === "video") return `${product} · 视频生产`;
   if (module === "models") return `${product} · 模型配置`;
+  if (module === "about") return `${product} · 关于`;
   return `${product} · AI视频生产`;
 }

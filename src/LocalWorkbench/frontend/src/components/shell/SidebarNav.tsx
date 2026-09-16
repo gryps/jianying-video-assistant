@@ -1,4 +1,4 @@
-import { Film, LogOut, PanelLeftClose, PanelLeftOpen, Settings2 } from "lucide-react";
+import { Film, Info, LogOut, PanelLeftClose, PanelLeftOpen, Settings2 } from "lucide-react";
 import type { PlatformModule, View } from "../../types";
 import { moduleGroups, videoNav, type ModuleNavItem, type ModuleNavKey } from "./moduleNavigation";
 
@@ -32,7 +32,7 @@ export function SidebarNav({ sidebarCollapsed, module, view, expandedModules, se
       </section>
       <section className="platform-module-group">
         <div className="platform-module-group-title">应用设置</div>
-        <nav className="platform-direct-nav"><button title={sidebarCollapsed ? "模型配置" : undefined} className={module === "models" ? "active" : ""} onClick={() => onPrimaryModuleClick({ key: "models", label: "模型配置", Icon: Settings2 })}><Settings2 /><span>模型配置</span></button></nav>
+        <nav className="platform-direct-nav"><button title={sidebarCollapsed ? "模型配置" : undefined} className={module === "models" ? "active" : ""} onClick={() => onPrimaryModuleClick({ key: "models", label: "模型配置", Icon: Settings2 })}><Settings2 /><span>模型配置</span></button><button title={sidebarCollapsed ? "关于" : undefined} className={module === "about" ? "active" : ""} onClick={() => onPrimaryModuleClick({ key: "about", label: "关于", Icon: Info })}><Info /><span>关于</span></button></nav>
       </section>
     </div>
     <button className="human-logout" onClick={onLogout}><LogOut /><span>退出 {username}</span></button>
