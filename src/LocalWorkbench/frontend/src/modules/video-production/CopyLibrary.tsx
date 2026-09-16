@@ -6,10 +6,12 @@ import { Pill } from "../../components/Pill";
 import { usePersistentOperation } from "../../hooks/usePersistentOperation";
 import type { CopyAnalysis, CopyCandidate, CopyItem, DeleteConfirmation, Narration, VoiceCatalogItem } from "../../types";
 
-export function CopyLibrary({ copies, narrations, act, reload }: {
+export function CopyLibrary({ copies, narrations, act, reload, onError, onNotice }: {
   copies: CopyItem[]; narrations: Narration[];
   act: (work: () => Promise<unknown>, success: string) => Promise<boolean>;
   reload: () => Promise<void>;
+  onError: (value: string) => void;
+  onNotice: (value: string) => void;
 }) {
   const [tab, setTab] = useState<"copies" | "voices" | "narrations">("copies");
   const [reference, setReference] = useState("");
@@ -115,10 +117,14 @@ export function CopyLibrary({ copies, narrations, act, reload }: {
       const result = await loadHistory(1);
       setHistoryPage(1);
       setActiveRecord(result.items[0] ?? null);
-      setGenerationNotice(state.detail || "文案生成已完成。");
+      const message = state.detail || "文案生成已完成。";
+      setGenerationNotice(message);
+      onNotice(message);
       await reload();
     } else {
-      setGenerationError(state.detail || "文案分析与生成未完成");
+      const message = state.detail || "文案分析与生成未完成";
+      setGenerationError(message);
+      onError(message);
     }
   });
   useEffect(() => { loadHistory(historyPage).catch(() => undefined); }, [historyPage, loadHistory]);
@@ -133,8 +139,11 @@ export function CopyLibrary({ copies, narrations, act, reload }: {
     try {
       const record = await api<CopyAnalysis>("/human/copies/iterations", { method: "POST", headers: { "X-Operation-Id": operationId }, body: JSON.stringify({ reference_text: reference }) });
       setActiveRecord(record); setHistoryPage(1); await Promise.all([loadHistory(1), reload()]);
+      onNotice("文案分析完成，已生成 5 条候选");
     } catch (reason) {
-      setGenerationError(reason instanceof Error ? reason.message : "文案分析与生成失败");
+      const message = reason instanceof Error ? reason.message : "文案分析与生成失败";
+      setGenerationError(message);
+      onError(message);
     } finally { generationOperation.clear(operationId); }
   }
   async function review(record: CopyAnalysis, item: CopyCandidate, status: "adopted" | "not_adopted") {
@@ -148,8 +157,8 @@ export function CopyLibrary({ copies, narrations, act, reload }: {
     const operationId = generationOperation.begin();
     if (!operationId) return;
     setGenerationError(""); setGenerationNotice("");
-    try { const updated = await api<CopyAnalysis>(`/human/copies/iterations/${record.id}/continue`, { method: "POST", headers: { "X-Operation-Id": operationId } }); replaceRecord(updated); await loadHistory(historyPage); }
-    catch (reason) { setGenerationError(reason instanceof Error ? reason.message : "继续迭代失败"); }
+    try { const updated = await api<CopyAnalysis>(`/human/copies/iterations/${record.id}/continue`, { method: "POST", headers: { "X-Operation-Id": operationId } }); replaceRecord(updated); await loadHistory(historyPage); onNotice("已继续生成 5 条候选"); }
+    catch (reason) { const message = reason instanceof Error ? reason.message : "继续迭代失败"; setGenerationError(message); onError(message); }
     finally { generationOperation.clear(operationId); }
   }
   function AnalysisView({ record }: { record: CopyAnalysis }) {
@@ -170,7 +179,8 @@ export function CopyLibrary({ copies, narrations, act, reload }: {
     try {
       const result = await api<{ text: string }>("/human/copies/audio-to-text", { method: "POST", body: form });
       setTranscriptionText(result.text);
-    } catch (reason) { setTranscriptionError(reason instanceof Error ? reason.message : "音频转文案失败"); }
+      onNotice("音频已转换成文案");
+    } catch (reason) { const message = reason instanceof Error ? reason.message : "音频转文案失败"; setTranscriptionError(message); onError(message); }
     finally { setTranscriptionBusy(false); }
   }
   async function generateNarration() {

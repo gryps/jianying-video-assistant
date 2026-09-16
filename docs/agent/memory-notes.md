@@ -73,3 +73,5 @@
 - 用户实测 V13 确认归类时遇到 HTTP 500。隔离 Windows 数据库、真实 MP4、中文产品/标签与原目录绝对路径复现均成功，定位到认证依赖会在每个并行 API 请求中更新 `last_seen_at`，令所有读取请求变成 SQLite 写入并放大写锁冲突。
 - V14 将认证校验改为只读，SQLite 连接与 `busy_timeout` 统一提高到 30 秒；归类的意外异常改为 409 可读原因并写入 `Data/logs/server.log`，不再只显示无信息的 500。Windows 素材与接口回归 17 项通过，隔离数据的打包后端真实视频归类通过。
 - V14 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V14-ClassificationFix`，桌面快捷方式已切换并在交互会话启动；桌面包 `JianyingVideoAssistant-V14-ClassificationFix.zip` 为 420,497,565 字节，SHA-256 `6FC05DFFF43042C57C71CCBAB3510202470E07FCC030C5B615A0EAE7610CD132`。
+- V15 修复顶部“操作状态”滞留：成功消息会清除旧错误，错误会清除旧成功；文案生成、继续迭代和音频转文案也会把结果同步到顶部状态。桌面前端类型检查与生产构建、打包本地服务隔离健康检查、实际 V15 进程树和新静态资源检查通过。
+- V15 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V15-StatusSync`，桌面快捷方式和交互启动任务均已切换；桌面包 `JianyingVideoAssistant-V15-StatusSync.zip` 为 420,801,731 字节，SHA-256 `943C1F123D5E1FEEDDCE727FD26A259E314D40A40AA24D3F256D451179CCD6C4`。本次 WPF 宿主未变，沿用 V14 已验证的自包含宿主，仅重建并替换本地服务与前端资源。

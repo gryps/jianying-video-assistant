@@ -22,6 +22,16 @@ export function useWorkbenchData() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const reportError = useCallback((value: string) => {
+    setNotice("");
+    setError(value);
+  }, []);
+
+  const reportNotice = useCallback((value: string) => {
+    setError("");
+    setNotice(value);
+  }, []);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -74,9 +84,9 @@ export function useWorkbenchData() {
     music,
     drafts,
     error,
-    setError,
+    setError: reportError,
     notice,
-    setNotice,
+    setNotice: reportNotice,
     loading,
     refresh,
     act,
