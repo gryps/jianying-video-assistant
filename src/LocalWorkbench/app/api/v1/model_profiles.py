@@ -33,7 +33,10 @@ def _validate_profile(profile: ModelProfile, current: ModelProfile | None) -> No
         if profile.stage == "speech_recognition" and not is_supported_speech_recognition_model(profile.model):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail="语音识别请选择非实时 qwen3-asr-flash；不能选择 realtime 或 filetrans 模型",
+                detail=(
+                    "语音识别请选择非实时 qwen3-asr-flash 或 "
+                    "qwen-audio-3.0-asr-flash；不能选择 realtime 或 filetrans 模型"
+                ),
             )
 
 
@@ -114,9 +117,16 @@ def list_workbench_profile_models(profile: ModelProfile, _admin: AdminUser = Dep
         if stored is not None:
             profile.api_key = stored.api_key
     try:
-        models = models_for_profile_stage(profile.stage, list_openai_compatible_models(profile))
+        models = models_for_profile_stage(
+            profile.stage,
+            list_openai_compatible_models(profile),
+            profile.base_url,
+        )
         if not models:
-            raise RuntimeError("当前模型列表中没有适用于音频转文案的非实时 qwen3-asr-flash 模型")
+            raise RuntimeError(
+                "当前模型列表中没有适用于音频转文案的非实时 "
+                "qwen3-asr-flash 或 qwen-audio-3.0-asr-flash 模型"
+            )
     except RuntimeError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return {"models": models}

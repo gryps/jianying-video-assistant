@@ -6,6 +6,7 @@ import time
 import urllib.error
 import urllib.request
 from typing import Any
+from urllib.parse import urlparse
 
 from app.core.database import session_scope
 from app.core.secret_protection import SecretProtectionError, is_protected_secret, protect_secret, unprotect_secret
@@ -60,16 +61,29 @@ QWEN3_ASR_HTTP_MODEL_PATTERN = re.compile(
     r"qwen3-asr-flash(?:-\d{4}-\d{2}-\d{2})?",
     re.IGNORECASE,
 )
+QWEN_AUDIO_ASR_HTTP_MODEL_PATTERN = re.compile(
+    r"qwen-audio-3\.0-asr-flash(?:-\d{4}-\d{2}-\d{2})?",
+    re.IGNORECASE,
+)
 
 
 def is_supported_speech_recognition_model(model: str) -> bool:
-    """Return whether a model supports the synchronous OpenAI-compatible ASR API."""
-    return bool(QWEN3_ASR_HTTP_MODEL_PATTERN.fullmatch(model.strip()))
+    """Return whether a model supports one of the synchronous ASR adapters."""
+    clean = model.strip()
+    return bool(
+        QWEN3_ASR_HTTP_MODEL_PATTERN.fullmatch(clean)
+        or QWEN_AUDIO_ASR_HTTP_MODEL_PATTERN.fullmatch(clean)
+    )
 
 
-def models_for_profile_stage(stage: str, models: list[str]) -> list[str]:
+def models_for_profile_stage(stage: str, models: list[str], base_url: str = "") -> list[str]:
     if stage == "speech_recognition":
-        return [item for item in models if is_supported_speech_recognition_model(item)]
+        supported = [item for item in models if is_supported_speech_recognition_model(item)]
+        hostname = (urlparse(base_url).hostname or "").casefold()
+        qwen_audio = "qwen-audio-3.0-asr-flash"
+        if hostname.endswith(".maas.aliyuncs.com") and qwen_audio not in supported:
+            supported.append(qwen_audio)
+        return supported
     return models
 
 

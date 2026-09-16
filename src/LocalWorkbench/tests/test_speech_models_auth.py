@@ -74,6 +74,52 @@ def test_qwen_asr_uses_chat_completions_with_base64_audio(tmp_path, monkeypatch)
     assert "files" not in requests[0][1]
 
 
+def test_qwen_audio_asr_uses_multimodal_generation_with_base64_audio(tmp_path, monkeypatch):
+    profile = ModelProfile(
+        stage="speech_recognition",
+        label="音频转文案",
+        base_url="https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+        model="qwen-audio-3.0-asr-flash",
+        api_key="sk-test",
+    )
+    monkeypatch.setattr(
+        "app.services.speech_recognition.load_model_profiles", lambda **_kwargs: [profile]
+    )
+    monkeypatch.setattr(
+        "app.services.speech_recognition._prepare_asr_data_uri",
+        lambda _path: "data:audio/mpeg;base64,SUQz",
+    )
+    monkeypatch.setattr(
+        "app.services.speech_recognition.record_business_model_call", lambda **_kwargs: None
+    )
+    requests = []
+
+    def fake_post(url, **kwargs):
+        requests.append((url, kwargs))
+        return httpx.Response(
+            200,
+            request=httpx.Request("POST", url),
+            json={"request_id": "audio-asr-1", "output": {"text": "新模型识别结果"}},
+        )
+
+    monkeypatch.setattr("app.services.speech_recognition.httpx.post", fake_post)
+    source = tmp_path / "input.wav"
+    source.write_bytes(b"RIFF-audio")
+
+    result = recognize_narration_audio(source, approved_text="产品词表")
+
+    assert result["text"] == "新模型识别结果"
+    assert requests[0][0].endswith("/api/v1/services/aigc/multimodal-generation/generation")
+    assert requests[0][1]["headers"]["X-DashScope-SSE"] == "disable"
+    payload = requests[0][1]["json"]
+    assert payload["model"] == "qwen-audio-3.0-asr-flash"
+    assert payload["parameters"] == {"format": "mp3", "sample_rate": "16000"}
+    assert payload["input"]["messages"][-1]["content"][0] == {
+        "type": "input_audio",
+        "input_audio": {"data": "data:audio/mpeg;base64,SUQz"},
+    }
+
+
 def test_qwen_asr_retries_provider_internal_errors(tmp_path, monkeypatch):
     profile = ModelProfile(
         stage="speech_recognition",
@@ -132,9 +178,23 @@ def test_speech_recognition_model_list_excludes_incompatible_asr_protocols():
             "qwen3-asr-flash-filetrans",
             "qwen3-asr-flash",
             "qwen3-asr-flash-2026-02-10",
+            "qwen-audio-3.0-asr-flash",
+            "qwen-audio-3.0-asr-flash-filetrans",
             "qwen-plus",
         ],
-    ) == ["qwen3-asr-flash", "qwen3-asr-flash-2026-02-10"]
+    ) == [
+        "qwen3-asr-flash",
+        "qwen3-asr-flash-2026-02-10",
+        "qwen-audio-3.0-asr-flash",
+    ]
+
+
+def test_bailian_workspace_model_list_includes_qwen_audio_asr_adapter():
+    assert models_for_profile_stage(
+        "speech_recognition",
+        ["qwen-audio-3.0-realtime-plus", "qwen-audio-3.0-tts-plus"],
+        "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+    ) == ["qwen-audio-3.0-asr-flash"]
 
 
 def test_speech_recognition_profile_rejects_realtime_model(workbench_database):

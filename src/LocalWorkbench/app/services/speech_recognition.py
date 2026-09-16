@@ -16,6 +16,7 @@ from app.services.model_call_logs import record_business_model_call
 
 ASR_MAX_ATTEMPTS = 3
 ASR_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+QWEN_AUDIO_ASR_PREFIX = "qwen-audio-3.0-asr-flash"
 
 
 def _chat_endpoint(base_url: str) -> str:
@@ -25,6 +26,19 @@ def _chat_endpoint(base_url: str) -> str:
         if clean.endswith("/v1")
         else f"{clean}/v1/chat/completions"
     )
+
+
+def _multimodal_generation_endpoint(base_url: str) -> str:
+    clean = base_url.rstrip("/")
+    for suffix in ("/compatible-mode/v1", "/api/v1"):
+        if clean.endswith(suffix):
+            clean = clean[: -len(suffix)]
+            break
+    return f"{clean}/api/v1/services/aigc/multimodal-generation/generation"
+
+
+def _uses_qwen_audio_asr(model: str) -> bool:
+    return model.strip().casefold().startswith(QWEN_AUDIO_ASR_PREFIX)
 
 
 def _prepare_asr_data_uri(audio_path: Path) -> str:
@@ -42,7 +56,7 @@ def _prepare_asr_data_uri(audio_path: Path) -> str:
     if probe.returncode != 0 or duration <= 0:
         raise RuntimeError("无法读取待识别音频的时长")
     if duration > 300:
-        raise ValueError("音频超过 qwen3-asr-flash 的5分钟限制，请缩短后重试")
+        raise ValueError("音频超过当前语音识别模型的 5 分钟限制，请缩短后重试")
     with tempfile.TemporaryDirectory(prefix="codexwork-asr-") as temporary_root:
         prepared = Path(temporary_root) / "input.mp3"
         result = subprocess.run(
@@ -60,7 +74,7 @@ def _prepare_asr_data_uri(audio_path: Path) -> str:
             detail = result.stderr.decode("utf-8", errors="replace")[-500:]
             raise RuntimeError(detail or "FFmpeg 无法准备语音识别音频")
         if prepared.stat().st_size > 10 * 1024 * 1024:
-            raise ValueError("音频超过 qwen3-asr-flash 的 10MB 限制，请使用不超过5分钟的音频")
+            raise ValueError("编码后的音频超过 10MB，请缩短后重试")
         encoded = base64.b64encode(prepared.read_bytes()).decode("ascii")
     return f"data:audio/mpeg;base64,{encoded}"
 
@@ -112,29 +126,52 @@ def recognize_narration_audio(
     try:
         if not is_supported_speech_recognition_model(profile.model):
             raise ValueError(
-                "当前音频转文案只支持非实时 qwen3-asr-flash 模型；"
+                "当前音频转文案只支持非实时 qwen3-asr-flash 或 "
+                "qwen-audio-3.0-asr-flash 模型；"
                 "不能使用带 realtime 或 filetrans 的模型"
             )
         data_uri = _prepare_asr_data_uri(audio_path)
+        qwen_audio = _uses_qwen_audio_asr(profile.model)
         messages: list[dict[str, Any]] = []
         if approved_text.strip():
-            messages.append({"role": "system", "content": [{"type": "text", "text": approved_text.strip()}]})
+            if qwen_audio:
+                messages.append({
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": approved_text.strip()[:400]}],
+                })
+            else:
+                messages.append({
+                    "role": "system",
+                    "content": [{"type": "text", "text": approved_text.strip()}],
+                })
         messages.append({
             "role": "user",
             "content": [{"type": "input_audio", "input_audio": {"data": data_uri}}],
         })
-        request_payload = {
-            "model": profile.model,
-            "messages": messages,
-            "stream": False,
-            "asr_options": {"enable_itn": True},
-        }
+        if qwen_audio:
+            endpoint = _multimodal_generation_endpoint(profile.base_url)
+            request_payload = {
+                "model": profile.model,
+                "input": {"messages": messages},
+                "parameters": {"format": "mp3", "sample_rate": "16000"},
+            }
+        else:
+            endpoint = _chat_endpoint(profile.base_url)
+            request_payload = {
+                "model": profile.model,
+                "messages": messages,
+                "stream": False,
+                "asr_options": {"enable_itn": True},
+            }
         for attempt_number in range(1, ASR_MAX_ATTEMPTS + 1):
             attempt_started = time.monotonic()
             try:
                 response = httpx.post(
-                    _chat_endpoint(profile.base_url),
-                    headers={"Authorization": f"Bearer {profile.api_key.strip()}"},
+                    endpoint,
+                    headers={
+                        "Authorization": f"Bearer {profile.api_key.strip()}",
+                        **({"X-DashScope-SSE": "disable"} if qwen_audio else {}),
+                    },
                     json=request_payload,
                     timeout=180,
                     proxy=profile.proxy_url or None,
@@ -170,9 +207,12 @@ def recognize_narration_audio(
                 time.sleep(attempt_number)
         payload = response.json()
         provider_request_id = str(payload.get("request_id") or "") if isinstance(payload, dict) else ""
-        choices = payload.get("choices") or []
-        message = choices[0].get("message") if choices and isinstance(choices[0], dict) else {}
-        text = str((message or {}).get("content") or "").strip()
+        if qwen_audio:
+            text = str((payload.get("output") or {}).get("text") or "").strip()
+        else:
+            choices = payload.get("choices") or []
+            message = choices[0].get("message") if choices and isinstance(choices[0], dict) else {}
+            text = str((message or {}).get("content") or "").strip()
         cues: list[dict[str, Any]] = []
         if not text:
             raise RuntimeError("音频转文案模型未返回有效文字")

@@ -10,6 +10,7 @@ export function BusinessModelSettings({ onError, onNotice }: { onError: (value: 
   const [saving, setSaving] = useState("");
   const [busy, setBusy] = useState("");
   const [modelLists, setModelLists] = useState<Record<string, string[]>>({});
+  const [modelListMessages, setModelListMessages] = useState<Record<string, { text: string; error: boolean }>>({});
   useEffect(() => {
     fetchModelProfiles()
       .then(value => setProfiles(value.profiles))
@@ -21,16 +22,22 @@ export function BusinessModelSettings({ onError, onNotice }: { onError: (value: 
   }
   async function loadModels(profile: ModelProfile) {
     setBusy(profile.stage);
+    setModelListMessages(rows => ({ ...rows, [profile.stage]: { text: "正在读取模型列表…", error: false } }));
     try {
       const value = await fetchModelList(profile);
       setModelLists(rows => ({ ...rows, [profile.stage]: value.models }));
-      if (!value.models.includes(profile.model) && value.models[0]) update(profile.stage, { model: value.models[0] });
-      onNotice(profile.stage === "speech_recognition" ? `已读取 ${value.models.length} 个可用于音频转文案的非实时模型` : `已读取 ${value.models.length} 个模型`);
+      const message = profile.stage === "speech_recognition"
+        ? `已读取 ${value.models.length} 个可用于音频转文案的非实时模型，请从下拉列表选择后保存。`
+        : `已读取 ${value.models.length} 个模型，请从下拉列表选择后保存。`;
+      setModelListMessages(rows => ({ ...rows, [profile.stage]: { text: message, error: false } }));
+      onNotice(message);
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "连接失败";
-      onError(profile.stage === "ai_video_generation" && /404|not found|请求失败/i.test(message)
+      const visibleMessage = profile.stage === "ai_video_generation" && /404|not found|请求失败/i.test(message)
         ? "可灵等视频平台不一定提供模型列表接口。这里可以跳过“读取模型列表”，直接手工填写接口地址、API Key 和模型名后保存。"
-        : message);
+        : message;
+      setModelListMessages(rows => ({ ...rows, [profile.stage]: { text: visibleMessage, error: true } }));
+      onError(visibleMessage);
     } finally {
       setBusy("");
     }
@@ -58,10 +65,10 @@ export function BusinessModelSettings({ onError, onNotice }: { onError: (value: 
       <label>百炼兼容接口<input value={profile.base_url} onChange={event => update(stage, { base_url: event.target.value })} placeholder="https://.../compatible-mode/v1" /></label>
       <label>API Key<input type="password" value={profile.api_key} onChange={event => update(stage, { api_key: event.target.value })} placeholder={profile.api_key_mask || "sk-..."} /></label>
       {profile.secret_unavailable && <small className="human-error">此 Key 来自其他电脑或 Windows 用户，当前无法解密。请重新填写并保存。</small>}
-      <label>模型类别{listed.length ? <select value={profile.model} onChange={event => update(stage, { model: event.target.value })}><option value="">请选择模型类别</option>{options.map(value => <option key={value} value={value}>{value}</option>)}</select> : <input value={profile.model} onChange={event => update(stage, { model: event.target.value })} placeholder={stage === "speech_recognition" ? "请填写非实时 qwen3-asr-flash" : stage === "image_analysis" ? "请选择支持图片输入的视觉模型，例如 qwen-vl" : stage === "image_generation" ? "请选择支持参考图生图的模型" : stage === "ai_video_generation" ? "请填写文生视频或图生视频模型" : "读取列表后可下拉选择，也可手动填写"} />}</label>
+      <label>模型类别{listed.length ? <select value={profile.model} onChange={event => update(stage, { model: event.target.value })}><option value="">请选择模型类别</option>{options.map(value => <option key={value} value={value}>{value}</option>)}</select> : <input value={profile.model} onChange={event => update(stage, { model: event.target.value })} placeholder={stage === "speech_recognition" ? "例如 qwen-audio-3.0-asr-flash" : stage === "image_analysis" ? "请选择支持图片输入的视觉模型，例如 qwen-vl" : stage === "image_generation" ? "请选择支持参考图生图的模型" : stage === "ai_video_generation" ? "请填写文生视频或图生视频模型" : "读取列表后可下拉选择，也可手动填写"} />}</label>
       <small>协议：{profile.protocol || "未声明"}；适配器：{profile.provider_type || "openai_compatible"}</small>
       {!!profile.capabilities?.length && <div className="business-model-capabilities">{profile.capabilities.map(value => <span key={value}>{value}</span>)}</div>}
-      {stage === "speech_recognition" && <small>仅支持非实时 qwen3-asr-flash；realtime 和 filetrans 使用其他接口，不能用于这里。</small>}
+      {stage === "speech_recognition" && <small>支持非实时 qwen-audio-3.0-asr-flash 和 qwen3-asr-flash；realtime 与 filetrans 模型不适用于这里。</small>}
       {stage === "image_analysis" && <small>用于分析产品组原图并为各图类生成可人工编辑的提示词。</small>}
       {stage === "image_generation" && <small>用于接收提示词与原图，生成白底图、环境图、模特图、详情图等 AI 图。</small>}
       {stage === "ai_video_generation" && <small>用于 AI 视频文生视频和图生视频任务，只保存平台侧连接，不写入 ComfyUI workflow。可灵这类平台如读取模型列表 404，可跳过读取并手工填写模型名后保存。</small>}
@@ -69,6 +76,7 @@ export function BusinessModelSettings({ onError, onNotice }: { onError: (value: 
         <button type="button" className="human-secondary" disabled={busy === stage || saving === stage || !profile.base_url || (!profile.api_key && !profile.has_api_key)} onClick={() => loadModels(profile)}>{busy === stage && <LoaderCircle className="spin" />}{busy === stage ? "正在读取列表…" : "读取模型列表"}</button>
         <button type="button" disabled={saving === stage || busy === stage} onClick={() => save(profile)}>{saving === stage && <LoaderCircle className="spin" />}{saving === stage ? "正在保存…" : "保存配置"}</button>
       </div>
+      {modelListMessages[stage] && <small className={modelListMessages[stage].error ? "human-error" : ""} role="status">{modelListMessages[stage].text}</small>}
     </article>;
   }
   if (loading) return <section className="human-page"><div className="human-empty"><LoaderCircle className="spin" />正在加载</div></section>;
