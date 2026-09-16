@@ -80,3 +80,5 @@
 
 - 抖音链接回退解析原本只检查 WSL 浏览器路径，并把原生 Windows `.exe` 错误送入 `wslpath`，导致已安装 Edge 仍提示缺少 Chrome。V16 按 Windows 的 Program Files、LocalAppData 路径优先发现 Microsoft Edge，也兼容 Chrome/Chromium；临时浏览器配置目录继续按任务隔离并在完成后删除。
 - Windows 音乐/草稿相关测试 9 项通过，目标机真实 Edge 无界面 DOM 测试、V16 隔离服务健康检查以及实际交互会话进程树验证通过。V16 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V16-EdgeDouyin`；桌面包 `JianyingVideoAssistant-V16-EdgeDouyin.zip` 为 420,803,098 字节，SHA-256 `87660D3ABADCA60DBB058718A8F47F9E7C196AEC5C173288C9717392CB191647`。
+- V16 对真实抖音页面仍会失败，因为页面 `<video>` 使用 `blob:`，真实媒体地址只出现在浏览器网络请求中。V17 使用隔离 Edge 会话的临时 NetLog，仅接受抖音可信媒体域名并在任务后删除日志；用户测试链接成功提取 67.709 秒、11,943,968 字节音频，音乐/草稿测试 10 项通过，V17 健康检查通过。V17 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V17-DouyinNetLog`；桌面包 `JianyingVideoAssistant-V17-DouyinNetLog.zip` 为 420,806,572 字节，SHA-256 `2660AE6F23FF10E09C0141A17809886ADB0F643980E2519D7731E9EDFDEA3884`。
+- 完整音频转文案验证已越过抖音下载阶段，但当前 `token-plan` 百炼业务空间的模型列表没有任何 ASR 模型；`qwen3-asr-flash-2026-02-10` 和稳定版 `qwen3-asr-flash` 均由服务端返回 `model_not_found`。客户端配置已改为官方稳定模型名，仍需在该业务空间开通 ASR，或换用已开通 ASR 的同地域 Workspace ID/API Key。

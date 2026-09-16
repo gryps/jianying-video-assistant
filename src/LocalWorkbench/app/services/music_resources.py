@@ -218,27 +218,45 @@ def _chromium_profile_argument(browser: Path, profile: Path) -> str:
 
 
 def _dump_anonymous_browser_dom(
-    browser: Path, *, profile: Path, url: str, virtual_time_ms: int
+    browser: Path,
+    *,
+    profile: Path,
+    url: str,
+    virtual_time_ms: int,
+    netlog_path: Path | None = None,
 ) -> str:
-    result = subprocess.run(
+    command = [
+        str(browser),
+        "--headless",
+        "--disable-gpu",
+        "--disable-software-rasterizer",
+        "--disable-gpu-compositing",
+        "--use-angle=swiftshader",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-extensions",
+        "--disable-background-networking",
+        "--no-first-run",
+        "--mute-audio",
+        f"--user-data-dir={_chromium_profile_argument(browser, profile)}",
+    ]
+    if netlog_path is not None:
+        netlog_path.unlink(missing_ok=True)
+        command.extend(
+            [
+                f"--log-net-log={netlog_path.resolve()}",
+                "--net-log-capture-mode=IncludeSensitive",
+            ]
+        )
+    command.extend(
         [
-            str(browser),
-            "--headless",
-            "--disable-gpu",
-            "--disable-software-rasterizer",
-            "--disable-gpu-compositing",
-            "--use-angle=swiftshader",
-            "--no-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-extensions",
-            "--disable-background-networking",
-            "--no-first-run",
-            "--mute-audio",
-            f"--user-data-dir={_chromium_profile_argument(browser, profile)}",
             f"--virtual-time-budget={virtual_time_ms}",
             "--dump-dom",
             url,
-        ],
+        ]
+    )
+    result = subprocess.run(
+        command,
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -249,6 +267,42 @@ def _dump_anonymous_browser_dom(
         detail = result.stderr.decode("utf-8", errors="replace")[-500:]
         raise RuntimeError(detail or "Edge/Chrome 临时浏览器未返回页面内容")
     return document
+
+
+def _douyin_netlog_media_urls(netlog_path: Path) -> list[str]:
+    if not netlog_path.is_file():
+        return []
+    try:
+        payload = json.loads(netlog_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return []
+    urls: list[str] = []
+    seen: set[str] = set()
+    for event in payload.get("events", []):
+        if not isinstance(event, dict):
+            continue
+        params = event.get("params")
+        value = params.get("url") if isinstance(params, dict) else None
+        if not isinstance(value, str) or value in seen:
+            continue
+        parsed = urlparse(value)
+        hostname = (parsed.hostname or "").lower()
+        if not any(hostname.endswith(suffix) for suffix in DOUYIN_MEDIA_HOST_SUFFIXES):
+            continue
+        if len(parsed.path) < 20 or not any(
+            marker in parsed.path.lower() for marker in ("media-audio", "media-video", "/video/")
+        ):
+            continue
+        seen.add(value)
+        urls.append(value)
+    return sorted(urls, key=lambda value: ("media-audio" not in urlparse(value).path.lower(), value))
+
+
+def _combined_douyin_media_urls(document: str, netlog_path: Path) -> list[str]:
+    document_urls = _douyin_media_urls(document)
+    return document_urls + [
+        value for value in _douyin_netlog_media_urls(netlog_path) if value not in document_urls
+    ]
 
 
 def _download_douyin_media(url: str, target: Path) -> None:
@@ -281,13 +335,18 @@ def _extract_douyin_audio(share_url: str, root: Path) -> Path:
         raise RuntimeError("抖音链接需要 Microsoft Edge、Chrome 或 Chromium 临时浏览器，但本机未找到可用浏览器")
     profile = root / "anonymous-browser-profile"
     profile.mkdir(parents=True, exist_ok=True)
+    netlog_path = root / "anonymous-browser-netlog.json"
     source_video = root / "source-video.mp4"
     target_audio = root / "source.wav"
     try:
         document = _dump_anonymous_browser_dom(
-            browser, profile=profile, url=share_url, virtual_time_ms=10_000
+            browser,
+            profile=profile,
+            url=share_url,
+            virtual_time_ms=20_000,
+            netlog_path=netlog_path,
         )
-        media_urls = _douyin_media_urls(document)
+        media_urls = _combined_douyin_media_urls(document, netlog_path)
         if not media_urls:
             video_id = _douyin_video_id(document)
             if not video_id:
@@ -296,9 +355,10 @@ def _extract_douyin_audio(share_url: str, root: Path) -> Path:
                 browser,
                 profile=profile,
                 url=f"https://www.douyin.com/video/{video_id}",
-                virtual_time_ms=15_000,
+                virtual_time_ms=20_000,
+                netlog_path=netlog_path,
             )
-            media_urls = _douyin_media_urls(document)
+            media_urls = _combined_douyin_media_urls(document, netlog_path)
         if not media_urls:
             raise RuntimeError("Edge/Chrome 临时浏览器未发现可下载的抖音视频流")
         errors: list[str] = []
@@ -316,6 +376,7 @@ def _extract_douyin_audio(share_url: str, root: Path) -> Path:
         raise RuntimeError(f"抖音页面返回的媒体流均无有效声音{f'（{detail}）' if detail else ''}")
     finally:
         source_video.unlink(missing_ok=True)
+        netlog_path.unlink(missing_ok=True)
         shutil.rmtree(profile, ignore_errors=True)
 
 

@@ -3,6 +3,7 @@ from app.services.music_resources import (
     _chromium_profile_argument,
     _douyin_media_url,
     _douyin_media_urls,
+    _douyin_netlog_media_urls,
     _douyin_video_id,
     _ensure_audible_audio,
     _extract_shared_url,
@@ -51,6 +52,28 @@ def test_native_windows_edge_uses_profile_path_without_wslpath(monkeypatch, tmp_
     )
 
     assert _chromium_profile_argument(browser, profile) == str(profile.resolve())
+
+
+def test_douyin_netlog_media_urls_prefers_audio_and_rejects_non_media(tmp_path):
+    netlog = tmp_path / "netlog.json"
+    video = "https://v26-web.douyinvod.com/path/to/media-video-avc1/?token=1"
+    audio = "https://v26-web.douyinvod.com/path/to/media-audio-und-mp4a/?token=2"
+    netlog.write_text(
+        json.dumps(
+            {
+                "events": [
+                    {"params": {"url": "https://v26-web.douyinvod.com"}},
+                    {"params": {"url": "https://attacker.example/media-audio/test"}},
+                    {"params": {"url": video}},
+                    {"params": {"url": audio}},
+                    {"params": {"url": audio}},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert _douyin_netlog_media_urls(netlog) == [audio, video]
 
 
 def test_music_share_parser_only_accepts_trusted_douyin_media_hosts():
