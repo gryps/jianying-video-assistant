@@ -75,3 +75,8 @@
 - V14 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V14-ClassificationFix`，桌面快捷方式已切换并在交互会话启动；桌面包 `JianyingVideoAssistant-V14-ClassificationFix.zip` 为 420,497,565 字节，SHA-256 `6FC05DFFF43042C57C71CCBAB3510202470E07FCC030C5B615A0EAE7610CD132`。
 - V15 修复顶部“操作状态”滞留：成功消息会清除旧错误，错误会清除旧成功；文案生成、继续迭代和音频转文案也会把结果同步到顶部状态。桌面前端类型检查与生产构建、打包本地服务隔离健康检查、实际 V15 进程树和新静态资源检查通过。
 - V15 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V15-StatusSync`，桌面快捷方式和交互启动任务均已切换；桌面包 `JianyingVideoAssistant-V15-StatusSync.zip` 为 420,801,731 字节，SHA-256 `943C1F123D5E1FEEDDCE727FD26A259E314D40A40AA24D3F256D451179CCD6C4`。本次 WPF 宿主未变，沿用 V14 已验证的自包含宿主，仅重建并替换本地服务与前端资源。
+
+## 2026-09-17
+
+- 抖音链接回退解析原本只检查 WSL 浏览器路径，并把原生 Windows `.exe` 错误送入 `wslpath`，导致已安装 Edge 仍提示缺少 Chrome。V16 按 Windows 的 Program Files、LocalAppData 路径优先发现 Microsoft Edge，也兼容 Chrome/Chromium；临时浏览器配置目录继续按任务隔离并在完成后删除。
+- Windows 音乐/草稿相关测试 9 项通过，目标机真实 Edge 无界面 DOM 测试、V16 隔离服务健康检查以及实际交互会话进程树验证通过。V16 发布到 `%LocalAppData%\JianyingVideoAssistant\App-V16-EdgeDouyin`；桌面包 `JianyingVideoAssistant-V16-EdgeDouyin.zip` 为 420,803,098 字节，SHA-256 `87660D3ABADCA60DBB058718A8F47F9E7C196AEC5C173288C9717392CB191647`。

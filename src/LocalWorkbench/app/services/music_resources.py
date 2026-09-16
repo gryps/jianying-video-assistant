@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -152,32 +153,66 @@ def delete_music_resource(session: Session, resource_id: str) -> dict[str, objec
     return result
 
 
+def _installed_browser_candidates() -> tuple[Path, ...]:
+    environment_candidates = (
+        ("PROGRAMFILES(X86)", "Microsoft/Edge/Application/msedge.exe"),
+        ("PROGRAMFILES", "Microsoft/Edge/Application/msedge.exe"),
+        ("LOCALAPPDATA", "Microsoft/Edge/Application/msedge.exe"),
+        ("PROGRAMFILES", "Google/Chrome/Application/chrome.exe"),
+        ("PROGRAMFILES(X86)", "Google/Chrome/Application/chrome.exe"),
+        ("LOCALAPPDATA", "Google/Chrome/Application/chrome.exe"),
+    )
+    native = tuple(
+        Path(root) / relative
+        for environment_name, relative in environment_candidates
+        if (root := os.environ.get(environment_name))
+    )
+    return native + (
+        Path("/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"),
+        Path("/mnt/c/Program Files/Microsoft/Edge/Application/msedge.exe"),
+        Path("/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"),
+    )
+
+
 def _find_anonymous_chromium() -> Path | None:
-    for command in ("google-chrome", "chromium", "chromium-browser", "microsoft-edge"):
+    for candidate in _installed_browser_candidates():
+        if candidate.is_file():
+            return candidate
+    for command in (
+        "msedge",
+        "msedge.exe",
+        "microsoft-edge",
+        "microsoft-edge-stable",
+        "google-chrome",
+        "chrome",
+        "chrome.exe",
+        "chromium",
+        "chromium-browser",
+    ):
         resolved = shutil.which(command)
         if resolved:
             return Path(resolved)
-    for candidate in (
-        Path("/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"),
-        Path("/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"),
-        Path("/mnt/c/Program Files/Microsoft/Edge/Application/msedge.exe"),
-    ):
-        if candidate.is_file():
-            return candidate
     return None
+
+
+def _running_on_windows() -> bool:
+    return os.name == "nt"
 
 
 def _chromium_profile_argument(browser: Path, profile: Path) -> str:
     resolved = str(profile.resolve())
-    if browser.suffix.lower() != ".exe":
+    if browser.suffix.lower() != ".exe" or _running_on_windows():
         return resolved
-    result = subprocess.run(
-        ["wslpath", "-w", resolved],
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        timeout=10,
-    )
+    try:
+        result = subprocess.run(
+            ["wslpath", "-w", resolved],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return resolved
     translated = result.stdout.decode("utf-8", errors="replace").strip()
     return translated or resolved
 
@@ -212,7 +247,7 @@ def _dump_anonymous_browser_dom(
     document = result.stdout.decode("utf-8", errors="replace")
     if not document:
         detail = result.stderr.decode("utf-8", errors="replace")[-500:]
-        raise RuntimeError(detail or "匿名浏览器未返回页面内容")
+        raise RuntimeError(detail or "Edge/Chrome 临时浏览器未返回页面内容")
     return document
 
 
@@ -243,7 +278,7 @@ def _download_douyin_media(url: str, target: Path) -> None:
 def _extract_douyin_audio(share_url: str, root: Path) -> Path:
     browser = _find_anonymous_chromium()
     if browser is None:
-        raise RuntimeError("抖音链接需要 Chromium/Chrome 匿名浏览器，但本机尚未安装")
+        raise RuntimeError("抖音链接需要 Microsoft Edge、Chrome 或 Chromium 临时浏览器，但本机未找到可用浏览器")
     profile = root / "anonymous-browser-profile"
     profile.mkdir(parents=True, exist_ok=True)
     source_video = root / "source-video.mp4"
@@ -256,7 +291,7 @@ def _extract_douyin_audio(share_url: str, root: Path) -> Path:
         if not media_urls:
             video_id = _douyin_video_id(document)
             if not video_id:
-                raise RuntimeError("匿名浏览器无法识别抖音作品 ID")
+                raise RuntimeError("Edge/Chrome 临时浏览器无法识别抖音作品 ID")
             document = _dump_anonymous_browser_dom(
                 browser,
                 profile=profile,
@@ -265,7 +300,7 @@ def _extract_douyin_audio(share_url: str, root: Path) -> Path:
             )
             media_urls = _douyin_media_urls(document)
         if not media_urls:
-            raise RuntimeError("匿名浏览器未发现可下载的抖音视频流")
+            raise RuntimeError("Edge/Chrome 临时浏览器未发现可下载的抖音视频流")
         errors: list[str] = []
         for index, media_url in enumerate(media_urls[:12], start=1):
             source_video.unlink(missing_ok=True)

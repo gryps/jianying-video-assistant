@@ -1,10 +1,12 @@
 from tests.current_workflow_helpers import *
 from app.services.music_resources import (
+    _chromium_profile_argument,
     _douyin_media_url,
     _douyin_media_urls,
     _douyin_video_id,
     _ensure_audible_audio,
     _extract_shared_url,
+    _find_anonymous_chromium,
     _is_douyin_url,
 )
 
@@ -24,6 +26,31 @@ def test_music_ingest_rejects_silent_audio(monkeypatch, tmp_path):
         lambda *_args, **_kwargs: SimpleNamespace(returncode=0, stderr=b"max_volume: -3.5 dB", stdout=b""),
     )
     _ensure_audible_audio(target)
+
+
+def test_anonymous_browser_finds_native_windows_edge(monkeypatch, tmp_path):
+    program_files = tmp_path / "Program Files (x86)"
+    edge = program_files / "Microsoft" / "Edge" / "Application" / "msedge.exe"
+    edge.parent.mkdir(parents=True)
+    edge.write_bytes(b"edge")
+    monkeypatch.setenv("PROGRAMFILES(X86)", str(program_files))
+    monkeypatch.delenv("PROGRAMFILES", raising=False)
+    monkeypatch.delenv("LOCALAPPDATA", raising=False)
+    monkeypatch.setattr("app.services.music_resources.shutil.which", lambda _command: None)
+
+    assert _find_anonymous_chromium() == edge
+
+
+def test_native_windows_edge_uses_profile_path_without_wslpath(monkeypatch, tmp_path):
+    browser = tmp_path / "msedge.exe"
+    profile = tmp_path / "temporary-profile"
+    monkeypatch.setattr("app.services.music_resources._running_on_windows", lambda: True)
+    monkeypatch.setattr(
+        "app.services.music_resources.subprocess.run",
+        lambda *_args, **_kwargs: pytest.fail("原生 Windows 不应调用 wslpath"),
+    )
+
+    assert _chromium_profile_argument(browser, profile) == str(profile.resolve())
 
 
 def test_music_share_parser_only_accepts_trusted_douyin_media_hosts():
