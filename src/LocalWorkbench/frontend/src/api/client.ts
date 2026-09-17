@@ -62,7 +62,17 @@ export async function apiBlob(path: string, options: RequestInit = {}): Promise<
   }
   const token = storedToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const response = await fetch(`/api/v1${path}`, { ...options, headers });
+  let response: Response;
+  try {
+    response = await fetch(`/api/v1${path}`, { ...options, headers });
+  } catch {
+    await new Promise(resolve => window.setTimeout(resolve, 400));
+    try {
+      response = await fetch(`/api/v1${path}`, { ...options, headers });
+    } catch {
+      throw new Error("本地服务暂不可用，请重新打开客户端后再试");
+    }
+  }
   if (response.status === 401) clearToken();
   if (!response.ok) {
     const payload = await response.json().catch(() => null);

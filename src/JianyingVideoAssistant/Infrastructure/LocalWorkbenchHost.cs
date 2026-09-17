@@ -36,6 +36,9 @@ internal sealed class LocalWorkbenchHost : IAsyncDisposable
         startInfo.Environment["PVA_FFMPEG_BINARY"] = Path.Combine(serverDirectory, "ffmpeg", "ffmpeg.exe");
         startInfo.Environment["PVA_FFPROBE_BINARY"] = Path.Combine(serverDirectory, "ffmpeg", "ffprobe.exe");
         startInfo.Environment["PVA_DESKTOP_MODE"] = "1";
+        var portableModelSeed = Path.Combine(serverDirectory, "model-profiles.seed");
+        if (File.Exists(portableModelSeed))
+            startInfo.Environment["PVA_MODEL_PROFILE_SEED_PATH"] = portableModelSeed;
         startInfo.Environment["PYTHONUTF8"] = "1";
 
         _process = Process.Start(startInfo) ?? throw new InvalidOperationException("本地工作台进程无法启动。");

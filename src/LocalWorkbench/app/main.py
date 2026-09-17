@@ -13,6 +13,7 @@ from app.api.v1.router import router as workbench_v1_router
 from app.config import settings
 from app.core.database import prepare_workbench_schema
 from app.services.model_call_logs import maybe_cleanup_expired_model_call_logs
+from app.services.portable_model_seed import import_packaged_model_seed
 
 
 async def _maintenance_loop(stop: asyncio.Event) -> None:
@@ -36,6 +37,7 @@ async def lifespan(_app: FastAPI):
         for child in ("imports", "exports", "reports", "temp"):
             (module_dir / child).mkdir(parents=True, exist_ok=True)
     prepare_workbench_schema()
+    import_packaged_model_seed()
     stop = asyncio.Event()
     maintenance = asyncio.create_task(_maintenance_loop(stop))
     try:

@@ -7,13 +7,22 @@ import traceback
 from pathlib import Path
 import uvicorn
 from app.main import app
+from app.core.database import prepare_workbench_schema
+from app.services.portable_model_seed import export_portable_model_seed
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="剪映视频助手本地服务")
     parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, required=True)
+    parser.add_argument("--port", type=int)
+    parser.add_argument("--export-model-seed", type=Path)
     args = parser.parse_args()
+    if args.export_model_seed is not None:
+        prepare_workbench_schema()
+        export_portable_model_seed(args.export_model_seed)
+        return
+    if args.port is None:
+        parser.error("--port is required unless --export-model-seed is used")
     runtime = Path(os.environ.get("PVA_RUNTIME_DIR", Path.home() / ".jianying-video-assistant"))
     log_dir = runtime / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)

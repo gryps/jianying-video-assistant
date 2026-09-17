@@ -21,7 +21,7 @@
 - WebView2 SDK `1.0.4191.47`；固定运行时 `153.0.4234.32` 随包发布。
 - FFmpeg/FFprobe 和 .NET 10 均随包发布。
 - 模型供应商接口是用户配置后调用的业务集成，不是启动依赖。
-- 桌面端模型 API Key 使用 Windows DPAPI CurrentUser 加密后写入 SQLite；发布目录不携带用户数据库。密钥不能跨电脑或跨 Windows 用户解密，换机时需重新填写。
+- 桌面端模型 API Key 在用户数据库中使用 Windows DPAPI CurrentUser 加密。V23 交付 ZIP 按用户要求携带 AES-256-GCM 认证加密的模型配置种子；新电脑首次启动仅在本机尚无模型配置时导入，随后改用该 Windows 用户的 DPAPI 保存并删除解压目录中的种子。完整 ZIP 可被复制后使用，使用权限和额度限制依赖百炼云端策略。
 
 ## 素材归类逻辑
 
@@ -36,8 +36,8 @@
 - Web 对照与部署：`work-ubuntu:/home/gryps/apps/ecommerce-ops-platform/ops-workbench`。
 - Windows 构建/运行机：`gryps@192.168.31.21`（网卡手动地址）；不得部署到 `.31`。
 - Windows 构建机当前只保留随应用发布的 .NET Runtime，没有常驻 .NET SDK；宿主需要重编译时再临时安装 SDK，完成后清理。
-- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V22-ConsistentHistoryInputs`。
-- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V22-ConsistentHistoryInputs.zip`；包内不含用户数据库和 API Key。
+- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V23-PortableModels`。
+- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V23-PortableModels.zip`；包内不含用户数据库，但按用户要求包含加密的模型信息和 API Key 种子。
 
 ## 发布前验证
 

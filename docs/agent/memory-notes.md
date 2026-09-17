@@ -87,3 +87,9 @@
 - V20 为剪映草稿三个物料库增加全文/详情查看，长文案按标点和最多约 28 字的可读片段依次写入时间线，单段按字符数分配 2–5 秒；完整原文继续保存在创建快照中。客户端左侧导航新增“关于”，署名开发工具 Codex（OpenAI）、项目协助 Gryps 和微信 `gryps_zhang`，联系信息只存在于静态界面。Windows 草稿回归 11 项、桌面前端构建、V20 `/api/health`、进程树、快捷方式和实机关于页截图均通过。发布目录为 `%LocalAppData%\JianyingVideoAssistant\App-V20-LongContentAbout`；桌面包 `JianyingVideoAssistant-V20-LongContentAbout.zip` 为 420,628,428 字节，SHA-256 `DF7BA0F472EF3918392166D3E982A731D38353628B683840EEAF33254D5533E1`。
 - V21 取消素材归类中独立的“产品与标签管理”；产品分类和产品名称改为可直接输入的历史下拉框，空输入显示最近 5 条，输入后可模糊查询全部历史，只在归类成功后保存新记录。视频标签改为与背景音乐一致的逗号分隔自由标签弹窗，旧产品、标签和素材关系不删除。Windows 素材与接口回归 18 项、桌面前端构建、V21 打包后健康检查、进程路径和桌面快捷方式均通过。发布目录为 `%LocalAppData%\JianyingVideoAssistant\App-V21-SimpleClassification`；桌面包 `JianyingVideoAssistant-V21-SimpleClassification.zip` 为 420,631,969 字节，SHA-256 `BF8532C3E05C8E92A365300DB9CD35DFA28B06BC8EAC90C27D82680530D61047`。
 - V22 将产品分类和产品名称统一为完全相同的历史输入交互：两者均始终可输入，均展示最近 5 条并可模糊查询全部历史；选择已有产品名称时自动带出它的分类。自由标签弹窗明确说明逗号只用于分隔标签，归类文件名仍使用短横线连接。桌面前端生产构建、V22 静态资源校验、打包后健康检查和进程路径通过。发布目录为 `%LocalAppData%\JianyingVideoAssistant\App-V22-ConsistentHistoryInputs`；桌面包 `JianyingVideoAssistant-V22-ConsistentHistoryInputs.zip` 为 420,631,939 字节，SHA-256 `8FE2E444395543222B26F6A579BE09CFF8D139B044058BE3A95EC1306F444826`。
+
+## 2026-09-18
+
+- V22 背景音乐库的 67.734 秒音频“Failed to fetch”排查确认为当时客户端和本地服务均未运行，不是音频损坏；原文件为 11,948,404 字节且 FFprobe 可完整读取。V23 的音频请求会短暂重试一次，服务仍无法连接时改为中文提示重新打开客户端。
+- V23 按用户要求将当前模型信息和 API Key 以 AES-256-GCM 认证加密种子放入交付 ZIP；新电脑首次启动时仅在本机无模型配置时导入，改用当前 Windows 用户 DPAPI 加密后删除解压目录中的种子。完整 ZIP 仍可被他人复制和使用，访问限制依赖百炼云端配置。首次运行主程序会自动在当前用户桌面创建或更新快捷方式。
+- Windows 模型、密钥和音乐回归 30 项通过；隔离打包服务 DPAPI 测试、全新数据目录加密种子导入/删除/再导出、.NET 10 自包含发布、V23 健康检查、ZIP 种子存在性、自动快捷方式目标和进程路径均通过。发布目录为 `%LocalAppData%\JianyingVideoAssistant\App-V23-PortableModels`；桌面包 `JianyingVideoAssistant-V23-PortableModels.zip` 为 425,971,338 字节，SHA-256 `14E1BD3E93D7559B358BA26E8DD7C2D47B8BB70CA41262D14D95B2A2888CF5B8`。

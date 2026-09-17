@@ -453,6 +453,28 @@ def test_desktop_model_profile_storage_uses_secret_protector(workbench_database,
     assert load_model_profiles(include_api_key=True)[0].api_key == "sk-not-plaintext-at-rest"
 
 
+def test_portable_model_seed_is_authenticated_and_imported_once(workbench_database):
+    from app.services.portable_model_seed import export_portable_model_seed, import_packaged_model_seed
+
+    profiles = load_model_profiles(include_api_key=True)
+    target = next(item for item in profiles if item.stage == "copywriting")
+    target.base_url = "https://seed.example/v1"
+    target.model = "qwen-seed"
+    target.api_key = "sk-portable-seed-secret"
+    save_model_profiles(profiles)
+    seed = workbench_database / "model-profiles.seed"
+    export_portable_model_seed(seed)
+    assert b"sk-portable-seed-secret" not in seed.read_bytes()
+
+    with session_scope() as session:
+        session.delete(session.get(WorkbenchSetting, "model_profiles"))
+    assert import_packaged_model_seed(seed) is True
+    assert not seed.exists()
+    imported = next(item for item in load_model_profiles(include_api_key=True) if item.stage == "copywriting")
+    assert imported.model == "qwen-seed"
+    assert imported.api_key == "sk-portable-seed-secret"
+
+
 def test_model_profile_can_be_saved_independently(workbench_database):
     before = load_model_profiles(include_api_key=True)
     target = next(item for item in before if item.stage == "speech_recognition")

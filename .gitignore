@@ -24,3 +24,4 @@ src/LocalWorkbench/frontend/node_modules/
 src/LocalWorkbench/frontend/dist/
 src/LocalWorkbench/ops-workbench-runtime/
 src/ops-workbench-runtime/
+*.seed
