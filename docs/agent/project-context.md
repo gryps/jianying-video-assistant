@@ -26,7 +26,7 @@
 ## 素材归类逻辑
 
 - 素材归类页取消独立的“产品与标签管理”，产品分类和产品名称均可直接输入。
-- 两个输入框保留成功归类的历史；空输入展示最近 5 条，输入文字时模糊查询历史。
+- 两个输入框样式和功能一致，均可独立输入；空输入展示最近 5 条，输入文字时模糊查询全部历史。选择历史产品名称时自动带出它的产品分类。
 - 视频逐条单选后通过逗号分隔的自由输入弹窗设置标签，与背景音乐标签交互一致。
 - 既有产品、分类、标签和素材关系继续保留；自由标签在后台使用内部兼容分组，不要求用户管理标签分类。
 
@@ -36,8 +36,8 @@
 - Web 对照与部署：`work-ubuntu:/home/gryps/apps/ecommerce-ops-platform/ops-workbench`。
 - Windows 构建/运行机：`gryps@192.168.31.21`（网卡手动地址）；不得部署到 `.31`。
 - Windows 构建机当前只保留随应用发布的 .NET Runtime，没有常驻 .NET SDK；宿主需要重编译时再临时安装 SDK，完成后清理。
-- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V21-SimpleClassification`。
-- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V21-SimpleClassification.zip`；包内不含用户数据库和 API Key。
+- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V22-ConsistentHistoryInputs`。
+- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V22-ConsistentHistoryInputs.zip`；包内不含用户数据库和 API Key。
 
 ## 发布前验证
 
