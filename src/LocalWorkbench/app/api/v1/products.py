@@ -80,7 +80,7 @@ def page_products(
 @router.get("/categories", response_model=list[ProductCategoryResponse])
 def list_product_categories(_admin: AdminUser = Depends(require_admin)) -> list[ProductCategoryResponse]:
     with session_scope() as session:
-        rows = session.scalars(select(ProductCategory).order_by(ProductCategory.name)).all()
+        rows = session.scalars(select(ProductCategory).order_by(ProductCategory.updated_at.desc(), ProductCategory.name)).all()
         return [ProductCategoryResponse(
             id=item.id,
             name=item.name,
@@ -130,7 +130,7 @@ def delete_product_category(category_id: str, _admin: AdminUser = Depends(requir
 @router.get("", response_model=list[ProductResponse])
 def list_products(include_inactive: bool = True, _admin: AdminUser = Depends(require_admin)) -> list[ProductResponse]:
     with session_scope() as session:
-        statement = select(Product).where(Product.status != "deleted").order_by(Product.id)
+        statement = select(Product).where(Product.status != "deleted").order_by(Product.updated_at.desc(), Product.id.desc())
         if not include_inactive:
             statement = statement.where(Product.status == "active")
         products = session.scalars(statement).all()

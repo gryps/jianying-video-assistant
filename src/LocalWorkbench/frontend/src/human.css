@@ -498,6 +498,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid rgb(88 122 63 / 1
 .classification-master-inputs label > div { grid-template-columns: minmax(0, 1fr) 126px; }
 .classification-master-inputs label > div > input, .classification-master-inputs label > div > button { height: 38px; }
 .classification-master-inputs label > div > button { width: 100%; padding-inline: 10px; }
+.classification-master-inputs label > .classification-history-field { display: block; }
+.classification-history-field > .classification-combobox { width: 100%; }
 .classification-master-inputs label > small { min-height: 14px; color: #7c877f; font-size: 9px; line-height: 14px; }
 .desktop-file-picker { display: flex !important; grid-template-columns: none !important; align-items: center; min-height: 38px; overflow: hidden; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-1); }
 .human-shell .desktop-file-picker button { align-self: stretch; min-height: 36px; border-width: 0 1px 0 0; border-radius: 0; }
@@ -521,6 +523,10 @@ input:focus, select:focus, textarea:focus { outline: 2px solid rgb(88 122 63 / 1
 .human-shell .classification-video-delete { min-height: 30px; padding: 0 9px; font-size: 11px; }
 .human-shell .classification-video-delete:hover { border-color: #d88f93; background: #f9e2e4; color: #8f1f24; }
 .classification-video-delete svg { width: 14px !important; }
+.classification-video-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.human-shell .classification-video-actions button { min-height: 30px; padding: 0 9px; font-size: 11px; }
+.classification-video-actions button svg { width: 14px !important; }
+.classification-tag-dialog small.field-error { color: var(--error); }
 .video-applied-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
 .video-applied-tags span { padding: 3px 6px; border-radius: 10px; background: var(--surface-selected); color: #0b4a78; font-size: 8px; }
 .video-applied-tags em { color: #a24d45; font-size: 9px; font-style: normal; }

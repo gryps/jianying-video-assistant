@@ -23,12 +23,12 @@
 - 模型供应商接口是用户配置后调用的业务集成，不是启动依赖。
 - 桌面端模型 API Key 使用 Windows DPAPI CurrentUser 加密后写入 SQLite；发布目录不携带用户数据库。密钥不能跨电脑或跨 Windows 用户解密，换机时需重新填写。
 
-## 产品分类逻辑
+## 素材归类逻辑
 
-- 产品主数据由“产品分类 → 产品名称”两级组成。
-- 产品名称列表使用服务端搜索、分类筛选和每页 20 条分页，不一次渲染全部历史名称。
-- 既有未分类产品继续可见；新建产品时界面要求先选分类。
-- 标签分类/标签名称仍是独立、跨产品共享的素材标签体系。
+- 素材归类页取消独立的“产品与标签管理”，产品分类和产品名称均可直接输入。
+- 两个输入框保留成功归类的历史；空输入展示最近 5 条，输入文字时模糊查询历史。
+- 视频逐条单选后通过逗号分隔的自由输入弹窗设置标签，与背景音乐标签交互一致。
+- 既有产品、分类、标签和素材关系继续保留；自由标签在后台使用内部兼容分组，不要求用户管理标签分类。
 
 ## 开发与部署环境
 
@@ -36,8 +36,8 @@
 - Web 对照与部署：`work-ubuntu:/home/gryps/apps/ecommerce-ops-platform/ops-workbench`。
 - Windows 构建/运行机：`gryps@192.168.31.21`（网卡手动地址）；不得部署到 `.31`。
 - Windows 构建机当前只保留随应用发布的 .NET Runtime，没有常驻 .NET SDK；宿主需要重编译时再临时安装 SDK，完成后清理。
-- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V20-LongContentAbout`。
-- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V20-LongContentAbout.zip`；包内不含用户数据库和 API Key。
+- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V21-SimpleClassification`。
+- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V21-SimpleClassification.zip`；包内不含用户数据库和 API Key。
 
 ## 发布前验证
 

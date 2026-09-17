@@ -13,17 +13,101 @@ from app.domain.models import (
     MediaAsset,
     MediaAssetTag,
     Product,
+    ProductCategory,
     ShotTag,
+    TagCategory,
 )
+from app.core.security import utc_now
+from app.services.product_library import create_product, duplicate_product_name
+from app.text_normalization import normalize_tag_name
 
 
 INVALID_FILENAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+FREE_TAG_CATEGORY_NAME = "自由标签"
 
 
 @dataclass(frozen=True)
 class ClassificationItem:
     source_path: str
     tag_ids: list[str]
+
+
+def _normalized_history_name(value: str) -> str:
+    return re.sub(r"\s+", "", value).casefold()
+
+
+def resolve_classification_product(session: Session, *, category_name: str, product_name: str) -> Product:
+    clean_category = " ".join(category_name.strip().split())
+    clean_product = " ".join(product_name.strip().split())
+    if not clean_category:
+        raise ValueError("请输入产品分类")
+    if not clean_product:
+        raise ValueError("请输入产品名称")
+    if len(clean_category) > 80 or len(clean_product) > 160:
+        raise ValueError("产品分类或产品名称过长")
+
+    category_key = _normalized_history_name(clean_category)
+    category = next(
+        (item for item in session.scalars(select(ProductCategory)).all() if _normalized_history_name(item.name) == category_key),
+        None,
+    )
+    if category is None:
+        category = ProductCategory(name=clean_category)
+        session.add(category)
+        session.flush()
+
+    product = duplicate_product_name(session, clean_product)
+    if product is not None and product.category_id not in (None, category.id):
+        existing_category = session.get(ProductCategory, product.category_id)
+        raise ValueError(f"产品名称“{product.name}”已属于“{existing_category.name if existing_category else '其他'}”分类")
+    if product is None:
+        product = create_product(session, name=clean_product)
+    product.category_id = category.id
+    product.status = "active"
+    now = utc_now()
+    product.updated_at = now
+    category.updated_at = now
+    session.flush()
+    return product
+
+
+def resolve_free_tag_ids(session: Session, tag_names: list[str]) -> list[str]:
+    cleaned: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for value in tag_names:
+        name = " ".join(value.strip().split())
+        normalized = normalize_tag_name(name)
+        if not normalized or normalized in seen:
+            continue
+        if len(name) > 80:
+            raise ValueError(f"标签“{name[:16]}…”超过 80 个字符")
+        seen.add(normalized)
+        cleaned.append((name, normalized))
+    if not cleaned:
+        raise ValueError("每条视频至少输入一个标签")
+    if len(cleaned) > 30:
+        raise ValueError("每条视频最多输入 30 个标签")
+
+    category_key = normalize_tag_name(FREE_TAG_CATEGORY_NAME)
+    category = session.scalar(select(TagCategory).where(TagCategory.normalized_name == category_key))
+    if category is None:
+        category = TagCategory(name=FREE_TAG_CATEGORY_NAME, normalized_name=category_key)
+        session.add(category)
+        session.flush()
+    existing = session.scalars(
+        select(ShotTag).where(ShotTag.category_id == category.id, ShotTag.normalized_name.in_([value[1] for value in cleaned]))
+    ).all()
+    by_normalized = {item.normalized_name: item for item in existing}
+    result: list[str] = []
+    for name, normalized in cleaned:
+        tag = by_normalized.get(normalized)
+        if tag is None:
+            tag = ShotTag(name=name, normalized_name=normalized, category_id=category.id)
+            session.add(tag)
+            session.flush()
+            by_normalized[normalized] = tag
+        result.append(tag.id)
+    return result
 
 
 def safe_filename_part(value: str, *, fallback: str) -> str:
@@ -93,7 +177,8 @@ def classify_and_move_originals(
                 duplicate_category = tag.category_id
                 break
             seen_categories.add(tag.category_id)
-        if duplicate_category is not None:
+        duplicate_category_item = session.get(TagCategory, duplicate_category) if duplicate_category else None
+        if duplicate_category is not None and normalize_tag_name(duplicate_category_item.name if duplicate_category_item else "") != normalize_tag_name(FREE_TAG_CATEGORY_NAME):
             raise ValueError(
                 f"视频在同一标签分类下只能选择一个标签名称：{source.name}（{duplicate_category}）"
             )

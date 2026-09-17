@@ -11,18 +11,17 @@ export function ClassificationDropdown<T extends { id: string | number; name: st
   onSelect: (item: T) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [showAll, setShowAll] = useState(false);
-  const rows = showAll ? options.slice(0, 50) : fuzzyRows(options, value, item => item.name, 50);
+  const rows = value.trim() ? fuzzyRows(options, value, item => item.name, 50) : options.slice(0, 5);
   return <div className="classification-combobox">
-    <input value={value} placeholder={placeholder} disabled={disabled} autoComplete="off" onFocus={() => { setOpen(true); setShowAll(false); }} onChange={event => { onChange(event.target.value); setOpen(true); setShowAll(false); }} onBlur={() => {
+    <input value={value} placeholder={placeholder} disabled={disabled} autoComplete="off" onFocus={() => setOpen(true)} onChange={event => { onChange(event.target.value); setOpen(true); }} onBlur={() => {
       const exact = options.find(item => item.name.trim().toLocaleLowerCase() === value.trim().toLocaleLowerCase());
       if (exact) onSelect(exact);
       window.setTimeout(() => setOpen(false), 100);
     }} />
-    <button type="button" className="classification-combobox-toggle human-secondary" aria-label="展开下拉列表" aria-expanded={open} disabled={disabled} onMouseDown={event => event.preventDefault()} onClick={() => { setShowAll(true); setOpen(current => !current || !showAll); }}><ChevronDown /></button>
+    <button type="button" className="classification-combobox-toggle human-secondary" aria-label="展开最近输入" aria-expanded={open} disabled={disabled} onMouseDown={event => event.preventDefault()} onClick={() => setOpen(current => !current)}><ChevronDown /></button>
     {open && <div className="classification-combobox-options">
-      {rows.map(item => <button type="button" key={item.id} className={item.name === value ? "selected" : ""} onMouseDown={event => event.preventDefault()} onClick={() => { onSelect(item); setOpen(false); setShowAll(false); }}>{item.name}</button>)}
-      {rows.length === 0 && <span>没有匹配项，可输入后单独保存</span>}
+      {rows.map(item => <button type="button" key={item.id} className={item.name === value ? "selected" : ""} onMouseDown={event => event.preventDefault()} onClick={() => { onSelect(item); setOpen(false); }}>{item.name}</button>)}
+      {rows.length === 0 && <span>没有匹配历史，可直接使用当前输入</span>}
     </div>}
   </div>;
 }

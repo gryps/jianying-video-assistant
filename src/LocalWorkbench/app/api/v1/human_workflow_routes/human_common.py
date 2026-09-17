@@ -20,7 +20,7 @@ from app.services.auth import require_admin
 from app.services.audit import record_audit
 from app.text_normalization import normalize_copy_text, normalize_tag_name
 from app.services.jianying_drafts import create_jianying_draft, detect_jianying_draft_directory, duplicate_jianying_draft_usage_count, reset_jianying_draft_duplicate_counter, save_jianying_draft_directory
-from app.services.material_classification_move import ClassificationItem, classify_and_move_originals
+from app.services.material_classification_move import ClassificationItem, classify_and_move_originals, resolve_classification_product, resolve_free_tag_ids
 from app.services.operation_state import begin_operation, finish_operation, get_operation
 from app.services.copywriting import analyze_and_generate_copies, continue_copy_iteration
 from app.services.speech_recognition import recognize_narration_audio
@@ -42,10 +42,13 @@ def _start_tracked_operation(operation_id: object, kind: str) -> str:
 
 class MaterialClassificationItemPayload(BaseModel):
     source_path: str = Field(min_length=1, max_length=4000)
-    tag_ids: list[str] = Field(min_length=1, max_length=30)
+    tag_ids: list[str] = Field(default_factory=list, max_length=30)
+    tags: list[str] = Field(default_factory=list, max_length=30)
 
 class MaterialClassificationPayload(BaseModel):
-    product_id: int
+    product_id: int | None = None
+    product_category: str = Field(default='', max_length=80)
+    product_name: str = Field(default='', max_length=160)
     source_dir: str = Field(min_length=1, max_length=4000)
     items: list[MaterialClassificationItemPayload] = Field(min_length=1, max_length=5000)
 

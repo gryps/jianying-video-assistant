@@ -11,7 +11,14 @@ def confirm_material_classification(payload: MaterialClassificationPayload, admi
     operation_id = _start_tracked_operation(x_operation_id, 'material_classification')
     try:
         with session_scope() as session:
-            assets = classify_and_move_originals(session, product_id=payload.product_id, source_dir=payload.source_dir, items=[ClassificationItem(source_path=item.source_path, tag_ids=item.tag_ids) for item in payload.items])
+            if payload.product_id is not None:
+                product_id = payload.product_id
+                items = [ClassificationItem(source_path=item.source_path, tag_ids=item.tag_ids) for item in payload.items]
+            else:
+                product = resolve_classification_product(session, category_name=payload.product_category, product_name=payload.product_name)
+                product_id = product.id
+                items = [ClassificationItem(source_path=item.source_path, tag_ids=resolve_free_tag_ids(session, item.tags)) for item in payload.items]
+            assets = classify_and_move_originals(session, product_id=product_id, source_dir=payload.source_dir, items=items)
             result = {'status': 'classified', 'assets': [_classified_asset_dict(session, asset) for asset in assets]}
         finish_operation(operation_id, 'completed', f'已移动并重命名 {len(result["assets"])} 个原视频')
         return result

@@ -1,4 +1,5 @@
 from tests.current_workflow_helpers import *
+from app.domain.models import ProductCategory
 
 
 def test_current_schema_does_not_create_retired_tables(workbench_database):
@@ -116,6 +117,37 @@ def test_confirmed_classification_moves_and_renames_original_video(
         ) is not None
     assert not source.exists()
     assert (source_root / "红色发簪" / "红色发簪-手持展示.mp4").is_file()
+
+
+def test_free_input_classification_creates_history_and_multiple_tags(workbench_database, monkeypatch):
+    source_root = workbench_database / "free-input"
+    source_root.mkdir()
+    source = source_root / "camera002.mp4"
+    source.write_bytes(b"original-video")
+    monkeypatch.setattr(
+        "app.services.material_classification_move.probe_video",
+        lambda _path: {"duration_seconds": 2.5, "width": 1080, "height": 1920},
+    )
+    result = confirm_material_classification(
+        MaterialClassificationPayload(
+            product_category="发饰",
+            product_name="珍珠发簪",
+            source_dir=str(source_root),
+            items=[MaterialClassificationItemPayload(source_path=str(source), tags=["正面", "手持展示"])],
+        ),
+        admin=admin(),
+        x_operation_id=uuid.uuid4().hex,
+    )
+    assert result["assets"][0]["product_name"] == "珍珠发簪"
+    assert [item["name"] for item in result["assets"][0]["tags"]] == ["手持展示", "正面"]
+    assert (source_root / "珍珠发簪" / "珍珠发簪-正面-手持展示.mp4").is_file()
+    with session_scope() as session:
+        product = session.scalar(select(Product).where(Product.name == "珍珠发簪"))
+        assert product is not None
+        assert session.get(ProductCategory, product.category_id).name == "发饰"
+        free_category = session.scalar(select(TagCategory).where(TagCategory.name == "自由标签"))
+        assert free_category is not None
+        assert len(session.scalars(select(ShotTag).where(ShotTag.category_id == free_category.id)).all()) == 2
 
 
 def test_classification_rejects_two_tags_from_same_category(workbench_database):
