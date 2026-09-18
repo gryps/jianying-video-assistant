@@ -93,3 +93,7 @@
 - V22 背景音乐库的 67.734 秒音频“Failed to fetch”排查确认为当时客户端和本地服务均未运行，不是音频损坏；原文件为 11,948,404 字节且 FFprobe 可完整读取。V23 的音频请求会短暂重试一次，服务仍无法连接时改为中文提示重新打开客户端。
 - V23 按用户要求将当前模型信息和 API Key 以 AES-256-GCM 认证加密种子放入交付 ZIP；新电脑首次启动时仅在本机无模型配置时导入，改用当前 Windows 用户 DPAPI 加密后删除解压目录中的种子。完整 ZIP 仍可被他人复制和使用，访问限制依赖百炼云端配置。首次运行主程序会自动在当前用户桌面创建或更新快捷方式。
 - Windows 模型、密钥和音乐回归 30 项通过；隔离打包服务 DPAPI 测试、全新数据目录加密种子导入/删除/再导出、.NET 10 自包含发布、V23 健康检查、ZIP 种子存在性、自动快捷方式目标和进程路径均通过。发布目录为 `%LocalAppData%\JianyingVideoAssistant\App-V23-PortableModels`；桌面包 `JianyingVideoAssistant-V23-PortableModels.zip` 为 425,971,338 字节，SHA-256 `14E1BD3E93D7559B358BA26E8DD7C2D47B8BB70CA41262D14D95B2A2888CF5B8`。
+
+## 2026-09-19
+
+- 背景音乐试听的真实故障并非音频损坏或服务离线：WebView2 收到 200 响应头后会中断 11,948,404 字节的整段回环响应并报 `net::ERR_FAILED`，但 1 MiB Range 响应稳定。V24 将 GET 文件读取改为逐段 Range 下载并在浏览器中合并；真实 WebView2 验证 12 段完整合计 11,948,404 字节，界面进入“停止试听”且无错误。桌面前端生产构建、V24 本地服务健康检查、进程路径和快捷方式目标均通过。发布目录为 `%LocalAppData%\JianyingVideoAssistant\App-V24-MusicPreview`；桌面包 `JianyingVideoAssistant-V24-MusicPreview.zip` 为 426,136,988 字节，SHA-256 `4D7086F4852376A48B9EC6122D2B0AA611B04719C8826E7EBE6E59FD8E019BA8`，ZIP 保留加密模型种子。
