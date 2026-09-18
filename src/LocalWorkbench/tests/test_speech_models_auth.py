@@ -1,5 +1,6 @@
 from tests.current_workflow_helpers import *
 from app.domain.models import WorkbenchSetting
+from app.api.v1.human_workflow_routes.copies import delete_audio_to_copy_draft, get_audio_to_copy_draft
 
 
 def test_qwen_audio_voice_preview_is_persisted_and_reused(workbench_database, monkeypatch):
@@ -333,8 +334,37 @@ def test_audio_to_copy_accepts_local_media_without_creating_narration(workbench_
         _admin=admin(),
     )
     assert result["text"] == "识别后可修改的文案"
+    assert result["status"] == "completed"
+    assert get_audio_to_copy_draft(_admin=admin())["text"] == "识别后可修改的文案"
     with session_scope() as session:
         assert session.scalar(select(NarrationAsset)) is None
+        stored = session.get(WorkbenchSetting, "pending_audio_transcription")
+        assert stored is not None
+        assert stored.value["id"] == result["id"]
+    assert delete_audio_to_copy_draft(result["id"], _admin=admin()) == {"deleted": True}
+    assert get_audio_to_copy_draft(_admin=admin())["status"] == "idle"
+
+
+def test_audio_to_copy_persists_failure_for_page_restore(workbench_database, monkeypatch):
+    prepared = workbench_database / "prepared.wav"
+    prepared.write_bytes(b"RIFF-audio")
+    monkeypatch.setattr(
+        "app.api.v1.human_workflow_routes.copies.prepare_uploaded_audio",
+        lambda **_kwargs: prepared,
+    )
+    monkeypatch.setattr(
+        "app.api.v1.human_workflow_routes.copies.recognize_narration_audio",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("识别服务暂不可用")),
+    )
+    with pytest.raises(HTTPException, match="识别服务暂不可用"):
+        audio_to_copy(
+            share_url="",
+            media=UploadFile(filename="source.mp4", file=io.BytesIO(b"video")),
+            _admin=admin(),
+        )
+    draft = get_audio_to_copy_draft(_admin=admin())
+    assert draft["status"] == "failed"
+    assert draft["detail"] == "识别服务暂不可用"
 
 
 def test_model_voice_sequence_resolves_catalog_without_asr(workbench_database, monkeypatch):

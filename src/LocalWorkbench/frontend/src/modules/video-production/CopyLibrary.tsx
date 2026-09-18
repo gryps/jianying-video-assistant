@@ -6,6 +6,17 @@ import { Pill } from "../../components/Pill";
 import { usePersistentOperation } from "../../hooks/usePersistentOperation";
 import type { CopyAnalysis, CopyCandidate, CopyItem, DeleteConfirmation, Narration, VoiceCatalogItem } from "../../types";
 
+type TranscriptionDraft = {
+  id: string;
+  status: "idle" | "processing" | "completed" | "failed";
+  text: string;
+  source_type: string;
+  source_name: string;
+  model: string;
+  detail: string;
+  updated_at: string;
+};
+
 export function CopyLibrary({ copies, narrations, act, reload, onError, onNotice }: {
   copies: CopyItem[]; narrations: Narration[];
   act: (work: () => Promise<unknown>, success: string) => Promise<boolean>;
@@ -21,7 +32,7 @@ export function CopyLibrary({ copies, narrations, act, reload, onError, onNotice
   const [narrationText, setNarrationText] = useState(""); const [selectedCopyId, setSelectedCopyId] = useState("");
   const [copySearch, setCopySearch] = useState(""); const [copySearchOpen, setCopySearchOpen] = useState(false); const [copySearchBusy, setCopySearchBusy] = useState(false); const [copySuggestions, setCopySuggestions] = useState<CopyItem[]>([]); const [selectedNarrationCopy, setSelectedNarrationCopy] = useState<CopyItem | null>(null);
   const [narrationBusy, setNarrationBusy] = useState(false); const [narrationError, setNarrationError] = useState("");
-  const [transcriptionLink, setTranscriptionLink] = useState(""); const [transcriptionFile, setTranscriptionFile] = useState<File | null>(null); const [transcriptionText, setTranscriptionText] = useState(""); const [transcriptionBusy, setTranscriptionBusy] = useState(false); const [transcriptionError, setTranscriptionError] = useState("");
+  const [transcriptionLink, setTranscriptionLink] = useState(""); const [transcriptionFile, setTranscriptionFile] = useState<File | null>(null); const [transcriptionText, setTranscriptionText] = useState(""); const [transcriptionBusy, setTranscriptionBusy] = useState(false); const [transcriptionError, setTranscriptionError] = useState(""); const [transcriptionDraftId, setTranscriptionDraftId] = useState("");
   const [previewingVoice, setPreviewingVoice] = useState(""); const [previewLoading, setPreviewLoading] = useState(false); const [voicePreviewError, setVoicePreviewError] = useState("");
   const [voiceSequenceInput, setVoiceSequenceInput] = useState(""); const [selectedCatalogVoice, setSelectedCatalogVoice] = useState<VoiceCatalogItem | null>(null); const [voiceSequenceError, setVoiceSequenceError] = useState("");
   const [voiceCatalog, setVoiceCatalog] = useState<VoiceCatalogItem[]>([]); const [voiceCatalogTotal, setVoiceCatalogTotal] = useState(0); const [voiceCatalogPage, setVoiceCatalogPage] = useState(1); const [voiceCatalogQuery, setVoiceCatalogQuery] = useState(""); const [voiceCatalogGender, setVoiceCatalogGender] = useState(""); const [voiceCatalogAge, setVoiceCatalogAge] = useState(""); const [voiceCatalogScenario, setVoiceCatalogScenario] = useState("");
@@ -31,8 +42,40 @@ export function CopyLibrary({ copies, narrations, act, reload, onError, onNotice
   const [editingCopyId, setEditingCopyId] = useState<string | null>(null); const [editingCopy, setEditingCopy] = useState("");
   const [hiddenCopyIds, setHiddenCopyIds] = useState<string[]>([]);
   const [confirmation, setConfirmation] = useState<DeleteConfirmation | null>(null);
+  const transcriptionNoticeRef = useRef("");
   const visibleCopies = copies.filter(item => !hiddenCopyIds.includes(item.id));
   useEffect(() => { setHiddenCopyIds(ids => ids.filter(id => copies.some(item => item.id === id))); }, [copies]);
+  useEffect(() => {
+    let cancelled = false;
+    let timer = 0;
+    const loadDraft = async () => {
+      try {
+        const draft = await api<TranscriptionDraft>("/human/copies/audio-to-text/draft");
+        if (cancelled) return;
+        setTranscriptionDraftId(draft.id);
+        setTranscriptionBusy(draft.status === "processing");
+        if (draft.status === "processing") {
+          setTranscriptionError("");
+          timer = window.setTimeout(loadDraft, 1200);
+        } else if (draft.status === "completed") {
+          setTranscriptionText(draft.text);
+          setTranscriptionError("");
+          if (transcriptionNoticeRef.current !== draft.id) {
+            transcriptionNoticeRef.current = draft.id;
+            onNotice("音频已转换成文案，结果已恢复");
+          }
+        } else if (draft.status === "failed") {
+          setTranscriptionError(draft.detail || "音频转文案失败");
+          if (transcriptionNoticeRef.current !== draft.id) {
+            transcriptionNoticeRef.current = draft.id;
+            onError(draft.detail || "音频转文案失败");
+          }
+        }
+      } catch { /* 顶部全局状态负责显示服务连接错误。 */ }
+    };
+    loadDraft();
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [onError, onNotice]);
   useEffect(() => {
     if (!copySearchOpen || narrationBusy) return undefined;
     let cancelled = false;
@@ -177,11 +220,22 @@ export function CopyLibrary({ copies, narrations, act, reload, onError, onNotice
     if (transcriptionFile) form.append("media", transcriptionFile);
     else form.append("share_url", transcriptionLink.trim());
     try {
-      const result = await api<{ text: string }>("/human/copies/audio-to-text", { method: "POST", body: form });
-      setTranscriptionText(result.text);
+      const result = await api<TranscriptionDraft>("/human/copies/audio-to-text", { method: "POST", body: form });
+      setTranscriptionDraftId(result.id); setTranscriptionText(result.text);
+      transcriptionNoticeRef.current = result.id;
       onNotice("音频已转换成文案");
     } catch (reason) { const message = reason instanceof Error ? reason.message : "音频转文案失败"; setTranscriptionError(message); onError(message); }
     finally { setTranscriptionBusy(false); }
+  }
+  async function saveTranscription() {
+    const content = transcriptionText.trim();
+    if (!content) return;
+    const draftId = transcriptionDraftId;
+    const success = await act(async () => {
+      await api("/human/copies", { method: "POST", body: JSON.stringify({ content, product_id: null }) });
+      if (draftId) await api(`/human/copies/audio-to-text/draft/${draftId}`, { method: "DELETE" });
+    }, "转换文案已保存到内容文库");
+    if (success) { setTranscriptionDraftId(""); setTranscriptionText(""); setTranscriptionLink(""); setTranscriptionFile(null); }
   }
   async function generateNarration() {
     if (narrationBusy || !narrationText.trim() || !selectedCatalogVoice) return;
@@ -197,7 +251,7 @@ export function CopyLibrary({ copies, narrations, act, reload, onError, onNotice
       <div className="human-card full"><div className="human-card-title"><h2>音频转文案</h2><span>抖音短链接、本地视频或本地音频</span></div>
         <form className="human-form audio-to-copy-form" onSubmit={transcribeToCopy}><label>抖音视频短链接<textarea value={transcriptionLink} disabled={transcriptionBusy || Boolean(transcriptionFile)} onChange={event => setTranscriptionLink(event.target.value)} placeholder="粘贴抖音分享内容或短链接；与本地文件二选一" /></label><label>本地视频或音频<input type="file" accept="audio/*,video/*" disabled={transcriptionBusy || Boolean(transcriptionLink.trim())} onChange={event => setTranscriptionFile(event.target.files?.[0] ?? null)} /></label><button disabled={transcriptionBusy || (!transcriptionLink.trim() && !transcriptionFile)}>{transcriptionBusy ? <LoaderCircle className="spin" /> : <Upload />}{transcriptionBusy ? "正在转换…" : "转换成文案"}</button>{transcriptionBusy && <div className="copy-generation-progress" role="status" aria-live="polite"><LoaderCircle className="spin" /><div><b>音频正在转换为文案</b><span>系统正在提取音频并调用语音识别模型，完成前请勿重复提交。</span></div></div>}</form>
         {transcriptionError && <div className="copy-generation-progress error" role="alert"><div><b>转换失败</b><span>{transcriptionError}</span></div></div>}
-        {transcriptionText && <div className="human-form transcribed-copy-editor"><label>转换结果<textarea value={transcriptionText} onChange={event => setTranscriptionText(event.target.value)} /><small>可修改后保存到内容文库。</small></label><button disabled={!transcriptionText.trim()} onClick={() => act(() => api("/human/copies", { method: "POST", body: JSON.stringify({ content: transcriptionText.trim(), product_id: null }) }), "转换文案已保存到内容文库").then(ok => { if (ok) { setTranscriptionText(""); setTranscriptionLink(""); setTranscriptionFile(null); } })}>保存到内容文库</button></div>}
+        {transcriptionText && <div className="human-form transcribed-copy-editor"><label>转换结果<textarea value={transcriptionText} onChange={event => setTranscriptionText(event.target.value)} /><small>切换页面或刷新后仍会保留；可修改后保存到内容文库。</small></label><button disabled={!transcriptionText.trim()} onClick={saveTranscription}>保存到内容文库</button></div>}
       </div>
       <div className="human-card full"><div className="human-card-title"><h2>文案分析与迭代</h2><span>自动分析后一次生成 5 条</span></div>
         <form className="human-form copy-generation-form" onSubmit={generateCopies}><label>参考文案<textarea value={reference} onChange={event => setReference(event.target.value)} placeholder="粘贴一条短标题或长口播稿；留空时将根据全局已采纳文案推荐" disabled={generationOperation.busy} /><small>输入内容会自动作为已采纳文案保存；模型保持内容类型和大致长度。</small></label><button disabled={generationOperation.busy}>{generationOperation.busy ? <LoaderCircle className="spin" /> : <Sparkles />}{generationOperation.busy ? "正在分析并生成 5 条…" : reference.trim() ? "分析并迭代 5 条" : "根据已采纳文案推荐"}</button></form>

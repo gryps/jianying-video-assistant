@@ -1,6 +1,26 @@
 from .human_common import *
 
 router = APIRouter()
+TRANSCRIPTION_DRAFT_KEY = 'pending_audio_transcription'
+
+def _empty_transcription_draft() -> dict[str, Any]:
+    return {'id': '', 'status': 'idle', 'text': '', 'source_type': '', 'source_name': '', 'model': '', 'detail': '', 'updated_at': ''}
+
+def _transcription_draft(session: Session) -> dict[str, Any]:
+    setting = session.get(WorkbenchSetting, TRANSCRIPTION_DRAFT_KEY)
+    return dict(setting.value) if setting is not None else _empty_transcription_draft()
+
+def _save_transcription_draft(session: Session, payload: dict[str, Any]) -> dict[str, Any]:
+    value = {**_empty_transcription_draft(), **payload, 'updated_at': utc_now().isoformat()}
+    setting = session.get(WorkbenchSetting, TRANSCRIPTION_DRAFT_KEY)
+    if setting is None:
+        setting = WorkbenchSetting(key=TRANSCRIPTION_DRAFT_KEY, value=value)
+        session.add(setting)
+    else:
+        setting.value = value
+        setting.updated_at = utc_now()
+    session.flush()
+    return value
 
 @router.post('/copies/iterations', status_code=status.HTTP_201_CREATED)
 def create_copy_iteration(payload: CopyIterationPayload, _admin: AdminUser=Depends(require_admin), x_operation_id: str | None=Header(default=None, alias='X-Operation-Id')) -> dict[str, Any]:
@@ -155,20 +175,62 @@ def audio_to_copy(
     if bool(share_url.strip()) == bool(media and media.filename):
         raise HTTPException(status_code=400, detail='请选择一种来源：抖音视频短链接，或本地视频/音频')
     operation_id = uuid.uuid4().hex
+    source_type = 'douyin_link' if share_url.strip() else 'upload'
+    source_name = '抖音短链接' if share_url.strip() else (media.filename if media else '') or ''
+    with session_scope() as session:
+        current = _transcription_draft(session)
+        if current.get('status') == 'processing':
+            raise HTTPException(status_code=409, detail='已有音频正在转换，请等待完成后再试')
+        _save_transcription_draft(session, {
+            'id': operation_id, 'status': 'processing', 'text': '',
+            'source_type': source_type, 'source_name': source_name,
+            'model': '', 'detail': '音频正在转换为文案',
+        })
     root = (Path(settings.workspace_dir) / 'copy-transcriptions' / operation_id).resolve()
     try:
         if share_url.strip():
             audio_path = prepare_shared_audio(share_url, root)
-            source_type = 'douyin_link'
-            source_name = share_url.strip()
         else:
             assert media is not None
             audio_path = prepare_uploaded_audio(filename=media.filename or 'media', stream=media.file, root=root)
-            source_type = 'upload'
-            source_name = media.filename or ''
         recognition = recognize_narration_audio(audio_path, call_id=operation_id, business_step='音频转文案')
-        return {'text': str(recognition.get('text') or ''), 'source_type': source_type, 'source_name': source_name, 'model': recognition.get('model')}
+        with session_scope() as session:
+            result = _save_transcription_draft(session, {
+                'id': operation_id, 'status': 'completed',
+                'text': str(recognition.get('text') or ''),
+                'source_type': source_type, 'source_name': source_name,
+                'model': str(recognition.get('model') or ''),
+                'detail': '音频已转换成文案',
+            })
+        return result
     except (ValueError, RuntimeError, OSError) as exc:
+        with session_scope() as session:
+            current = _transcription_draft(session)
+            if current.get('id') == operation_id:
+                _save_transcription_draft(session, {
+                    'id': operation_id, 'status': 'failed', 'text': '',
+                    'source_type': source_type, 'source_name': source_name,
+                    'model': '', 'detail': str(exc)[:1000],
+                })
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+@router.get('/copies/audio-to-text/draft')
+def get_audio_to_copy_draft(_admin: AdminUser=Depends(require_admin)) -> dict[str, Any]:
+    with session_scope() as session:
+        return _transcription_draft(session)
+
+@router.delete('/copies/audio-to-text/draft/{draft_id}')
+def delete_audio_to_copy_draft(draft_id: str, _admin: AdminUser=Depends(require_admin)) -> dict[str, bool]:
+    with session_scope() as session:
+        setting = session.get(WorkbenchSetting, TRANSCRIPTION_DRAFT_KEY)
+        if setting is None:
+            return {'deleted': False}
+        if str(setting.value.get('id') or '') != draft_id:
+            raise HTTPException(status_code=409, detail='待确认文案已经更新，请重新查看后再操作')
+        if setting.value.get('status') == 'processing':
+            raise HTTPException(status_code=409, detail='音频仍在转换，暂时不能清除')
+        session.delete(setting)
+        session.flush()
+        return {'deleted': True}

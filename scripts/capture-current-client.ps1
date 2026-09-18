@@ -15,7 +15,9 @@ public static class WindowCaptureNativeMethods {
 }
 "@
 
-$process = Get-Process JianyingVideoAssistant -ErrorAction SilentlyContinue | Select-Object -First 1
+$process = Get-Process JianyingVideoAssistant -ErrorAction SilentlyContinue |
+    Where-Object { $_.MainWindowHandle -ne 0 } |
+    Select-Object -First 1
 if (-not $process) {
     if (-not (Test-Path $ExecutablePath)) { throw "找不到当前客户端：$ExecutablePath" }
     $process = Start-Process $ExecutablePath -PassThru

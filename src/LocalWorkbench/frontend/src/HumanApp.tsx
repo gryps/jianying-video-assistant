@@ -86,14 +86,14 @@ export default function HumanApp() {
         onSaveProfile={account.saveAccountProfile}
         onSavePassword={account.savePassword}
       />}
-      {!desktop && navigation.module === "video" && navigation.view === "flow" && <Flow materials={workbench.materials} copies={workbench.copies} music={workbench.music} drafts={workbench.drafts} />}
-      {navigation.module === "video" && navigation.view === "materials" && <Materials key={`materials-${navigation.viewRevision}`} products={workbench.products} act={workbench.act} />}
-      {navigation.module === "video" && navigation.view === "copy" && <CopyLibrary copies={workbench.copies} narrations={workbench.narrations} act={workbench.act} reload={workbench.refresh} onError={workbench.setError} onNotice={workbench.setNotice} />}
-      {navigation.module === "video" && navigation.view === "music" && <MusicLibrary music={workbench.music} act={workbench.act} />}
-      {navigation.module === "video" && navigation.view === "production" && <DraftProduction copies={workbench.copies} narrations={workbench.narrations} music={workbench.music} drafts={workbench.drafts} act={workbench.act} />}
-      {!desktop && navigation.module === "aiVideo" && <AiVideoProduction onError={workbench.setError} onNotice={workbench.setNotice} />}
-      {navigation.module === "models" && <BusinessModelSettings onError={workbench.setError} onNotice={workbench.setNotice} />}
-      {navigation.module === "about" && <About />}
+      {!desktop && <div hidden={navigation.module !== "video" || navigation.view !== "flow"}><Flow materials={workbench.materials} copies={workbench.copies} music={workbench.music} drafts={workbench.drafts} /></div>}
+      <div hidden={navigation.module !== "video" || navigation.view !== "materials"}><Materials products={workbench.products} act={workbench.act} /></div>
+      <div hidden={navigation.module !== "video" || navigation.view !== "copy"}><CopyLibrary copies={workbench.copies} narrations={workbench.narrations} act={workbench.act} reload={workbench.refresh} onError={workbench.setError} onNotice={workbench.setNotice} /></div>
+      <div hidden={navigation.module !== "video" || navigation.view !== "music"}><MusicLibrary music={workbench.music} act={workbench.act} /></div>
+      <div hidden={navigation.module !== "video" || navigation.view !== "production"}><DraftProduction copies={workbench.copies} narrations={workbench.narrations} music={workbench.music} drafts={workbench.drafts} act={workbench.act} /></div>
+      {!desktop && <div hidden={navigation.module !== "aiVideo"}><AiVideoProduction onError={workbench.setError} onNotice={workbench.setNotice} /></div>}
+      <div hidden={navigation.module !== "models"}><BusinessModelSettings onError={workbench.setError} onNotice={workbench.setNotice} /></div>
+      <div hidden={navigation.module !== "about"}><About /></div>
     </main>
   </div>;
 }

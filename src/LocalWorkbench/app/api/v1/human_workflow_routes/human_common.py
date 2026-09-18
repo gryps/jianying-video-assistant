@@ -15,7 +15,7 @@ from app.media import VIDEO_EXTENSIONS
 from app.ai import load_model_profiles
 from app.core.database import session_scope
 from app.core.security import utc_now
-from app.domain.models import AdminUser, CopyAnalysisRecord, CopyCandidate, CopyContent, CopyIterationBatch, JianyingDraft, MediaAsset, MediaAssetTag, NarrationAsset, Product, ShotTag, TagCategory, VoicePreviewAsset
+from app.domain.models import AdminUser, CopyAnalysisRecord, CopyCandidate, CopyContent, CopyIterationBatch, JianyingDraft, MediaAsset, MediaAssetTag, NarrationAsset, Product, ShotTag, TagCategory, VoicePreviewAsset, WorkbenchSetting
 from app.services.auth import require_admin
 from app.services.audit import record_audit
 from app.text_normalization import normalize_copy_text, normalize_tag_name
