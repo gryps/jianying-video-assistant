@@ -15,6 +15,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.core.subprocesses import hidden_subprocess_kwargs
 from app.domain.models import JianyingDraft, MusicResource
 from app.services.music_share_parser import (
     DOUYIN_AUDIO_HOST_SUFFIXES,
@@ -58,6 +59,7 @@ def _probe_duration(path: Path) -> float:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         timeout=120,
+        **hidden_subprocess_kwargs(),
     )
     if result.returncode != 0:
         detail = result.stderr.decode("utf-8", errors="replace")[-500:]
@@ -86,6 +88,7 @@ def _ensure_audible_audio(path: Path) -> None:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         timeout=600,
+        **hidden_subprocess_kwargs(),
     )
     detail = result.stderr.decode("utf-8", errors="replace")
     match = re.search(r"max_volume:\s*(-?\d+(?:\.\d+)?)\s*dB", detail)
@@ -117,6 +120,7 @@ def _extract_audio(source: Path, target: Path) -> Path:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         timeout=600,
+        **hidden_subprocess_kwargs(),
     )
     if result.returncode != 0 or not target.is_file():
         detail = result.stderr.decode("utf-8", errors="replace")[-500:]
@@ -210,6 +214,7 @@ def _chromium_profile_argument(browser: Path, profile: Path) -> str:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             timeout=10,
+            **hidden_subprocess_kwargs(),
         )
     except (OSError, subprocess.SubprocessError):
         return resolved
@@ -261,6 +266,7 @@ def _dump_anonymous_browser_dom(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         timeout=max(60, virtual_time_ms // 1000 + 45),
+        **hidden_subprocess_kwargs(),
     )
     document = result.stdout.decode("utf-8", errors="replace")
     if not document:
@@ -440,6 +446,7 @@ def prepare_shared_audio(share_url: str, root: Path) -> Path:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         timeout=900,
+        **hidden_subprocess_kwargs(),
     )
     target = root / "source.wav"
     if result.returncode != 0 or not target.is_file():

@@ -6,6 +6,7 @@ from fractions import Fraction
 from pathlib import Path
 
 from app.config import settings
+from app.core.subprocesses import hidden_subprocess_kwargs
 
 
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".avi", ".mkv", ".webm"}
@@ -49,6 +50,7 @@ def probe_video(path: Path) -> dict[str, object]:
             capture_output=True,
             text=True,
             timeout=settings.media_probe_timeout_seconds,
+            **hidden_subprocess_kwargs(),
         )
     except FileNotFoundError as exc:
         raise RuntimeError("未安装 ffprobe") from exc

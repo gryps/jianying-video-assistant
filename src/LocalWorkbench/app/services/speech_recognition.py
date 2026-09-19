@@ -11,6 +11,7 @@ import httpx
 
 from app.ai import is_supported_speech_recognition_model, load_model_profiles
 from app.config import settings
+from app.core.subprocesses import hidden_subprocess_kwargs
 from app.services.model_call_logs import record_business_model_call
 
 
@@ -48,6 +49,7 @@ def _prepare_asr_data_uri(audio_path: Path) -> str:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         timeout=120,
+        **hidden_subprocess_kwargs(),
     )
     try:
         duration = float(probe.stdout.decode("utf-8").strip())
@@ -69,6 +71,7 @@ def _prepare_asr_data_uri(audio_path: Path) -> str:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             timeout=600,
+            **hidden_subprocess_kwargs(),
         )
         if result.returncode != 0 or not prepared.is_file():
             detail = result.stderr.decode("utf-8", errors="replace")[-500:]

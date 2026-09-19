@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.core.subprocesses import hidden_subprocess_kwargs
 from app.domain.models import CopyContent, JianyingDraft, MusicResource, NarrationAsset, WorkbenchSetting
 from app.services.jianying_draft_counters import (
     DUPLICATE_COUNTER_RESETS_KEY,
@@ -52,6 +53,7 @@ def _probe_audio_duration_seconds(path: Path) -> float:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         timeout=settings.media_probe_timeout_seconds,
+        **hidden_subprocess_kwargs(),
     )
     try:
         duration = float(result.stdout.decode("utf-8").strip())

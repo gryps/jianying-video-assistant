@@ -1,3 +1,6 @@
+import os
+import subprocess
+
 from tests.current_workflow_helpers import *
 from app.services.music_resources import (
     _chromium_profile_argument,
@@ -10,6 +13,15 @@ from app.services.music_resources import (
     _find_anonymous_chromium,
     _is_douyin_url,
 )
+from app.core.subprocesses import hidden_subprocess_kwargs
+
+
+def test_media_subprocesses_hide_windows_console():
+    options = hidden_subprocess_kwargs()
+    if os.name == "nt":
+        assert options["creationflags"] & subprocess.CREATE_NO_WINDOW
+    else:
+        assert options == {}
 
 
 def test_music_ingest_rejects_silent_audio(monkeypatch, tmp_path):

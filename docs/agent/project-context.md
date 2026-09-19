@@ -36,8 +36,8 @@
 - Web 对照与部署：`work-ubuntu:/home/gryps/apps/ecommerce-ops-platform/ops-workbench`。
 - Windows 构建/运行机：`gryps@192.168.31.21`（网卡手动地址）；不得部署到 `.31`。
 - Windows 构建机当前只保留随应用发布的 .NET Runtime，没有常驻 .NET SDK；宿主需要重编译时再临时安装 SDK，完成后清理。
-- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V23-PortableModels`。
-- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V23-PortableModels.zip`；包内不含用户数据库，但按用户要求包含加密的模型信息和 API Key 种子。
+- 当前发布目录：`%LocalAppData%\JianyingVideoAssistant\App-V26-NoConsoleFlash`。
+- 当前可搬运包：Windows 桌面 `JianyingVideoAssistant-V26-NoConsoleFlash.zip`；包内不含用户数据库，但按用户要求包含加密的模型信息和 API Key 种子。
 
 ## 发布前验证
 

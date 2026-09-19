@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 import httpx
 
 from app.config import settings
+from app.core.subprocesses import hidden_subprocess_kwargs
 from app.services.ai_video.comfyui_client import ComfyUIClient
 from app.services.ai_video.models import GenerationTask
 from app.services.ai_video.provider_adapters import (
@@ -81,7 +82,14 @@ def prepare_vendor_input_image(task: GenerationTask, source: str) -> str:
         "1",
         str(target),
     ]
-    subprocess.run(command, check=True, capture_output=True, text=True, timeout=60)
+    subprocess.run(
+        command,
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        **hidden_subprocess_kwargs(),
+    )
     return str(target)
 
 
